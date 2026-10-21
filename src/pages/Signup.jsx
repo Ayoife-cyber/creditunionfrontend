@@ -1,0 +1,269 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
+import Logo from '../components/Logo.jsx';
+
+const EyeOpen = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+  </svg>
+);
+const EyeOff = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+    <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+  </svg>
+);
+
+const Field = ({ label, children }) => (
+  <div>
+    <label className="block text-xs font-semibold mb-1.5" style={{ color: '#94A3B8' }}>{label}</label>
+    {children}
+  </div>
+);
+
+// Returns { score 0-4, label, color }
+function getPasswordStrength(pwd) {
+  if (!pwd) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (pwd.length >= 8)                     score++;
+  if (pwd.length >= 12)                    score++;
+  if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+  if (/\d/.test(pwd))                      score++;
+  if (/[^A-Za-z0-9]/.test(pwd))           score++;
+  const clamped = Math.min(score, 4);
+  const map = [
+    { label: '',          color: '' },
+    { label: 'Weak',      color: '#EF4444' },
+    { label: 'Fair',      color: '#F59E0B' },
+    { label: 'Good',      color: '#06B6D4' },
+    { label: 'Strong',    color: '#10B981' },
+  ];
+  return { score: clamped, ...map[clamped] };
+}
+
+function PasswordStrengthBar({ password }) {
+  const { score, label, color } = getPasswordStrength(password);
+  if (!password) return null;
+  return (
+    <div className="mt-2">
+      <div className="flex gap-1 mb-1">
+        {[1, 2, 3, 4].map(i => (
+          <div
+            key={i}
+            className="h-1 flex-1 rounded-full transition-all duration-300"
+            style={{ background: i <= score ? color : 'rgba(255,255,255,0.08)' }}
+          />
+        ))}
+      </div>
+      {label && (
+        <p className="text-xs font-semibold" style={{ color }}>{label}</p>
+      )}
+    </div>
+  );
+}
+
+export default function Signup() {
+  const { signup } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ fullName: '', phone: '', email: '', password: '', confirmPassword: '' });
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    if (form.password !== form.confirmPassword) { setError('Passwords do not match'); return; }
+    if (form.password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    setSubmitting(true);
+    try {
+      const result = await signup(form.fullName, form.email, form.password, form.confirmPassword, form.phone);
+      if (result?.needsVerification) {
+        navigate('/verify', { state: { tempToken: result.token || result.tempToken, email: result.email || form.email, source: 'signup' } });
+        return;
+      }
+      // Safety net: if the backend sent no usable token, the account likely needs OTP verification
+      if (!result?.token && !localStorage.getItem('shughar_token')) {
+        navigate('/verify', { state: { tempToken: result?.tempToken || '', email: form.email, source: 'signup' } });
+        return;
+      }
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const pwdToggleStyle = { color: '#475569' };
+
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-10 relative overflow-hidden"
+      style={{ backgroundColor: '#0A1628' }}
+    >
+      {/* Background image */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/images/signup-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'rgba(10,22,40,0.78)' }}
+      />
+
+      {/* Background orbs */}
+      <div className="absolute w-96 h-96 rounded-full blur-3xl pointer-events-none animate-float"
+        style={{ background: 'rgba(3,105,161,0.15)', top: '-80px', right: '-80px' }} />
+      <div className="absolute w-64 h-64 rounded-full blur-3xl pointer-events-none animate-float"
+        style={{ background: 'rgba(6,182,212,0.08)', bottom: '-60px', left: '-60px', animationDelay: '1.5s' }} />
+
+      {/* Back to home */}
+      <Link
+        to="/"
+        className="absolute top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-smooth"
+        style={{ color: '#94A3B8', background: 'rgba(10,22,40,0.6)', border: '1px solid rgba(6,182,212,0.15)', backdropFilter: 'blur(8px)' }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#06B6D4'; e.currentTarget.style.borderColor = 'rgba(6,182,212,0.4)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = '#94A3B8'; e.currentTarget.style.borderColor = 'rgba(6,182,212,0.15)'; }}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to home
+      </Link>
+
+      <div className="relative w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex justify-center mb-8 animate-fadeInDown">
+          <Logo size="lg" showText={true} />
+        </div>
+
+        {/* Card */}
+        <div
+          className="rounded-3xl p-8 animate-slideInUp"
+          style={{
+            background: 'linear-gradient(135deg, #0F2A47, #0D1F35)',
+            border: '1px solid rgba(6,182,212,0.2)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+          }}
+        >
+          <h1 className="font-display font-bold text-2xl mb-1 animate-fadeInUp stagger-1" style={{ color: '#F1F5F9' }}>
+            Create your account
+          </h1>
+          <p className="text-sm mb-6 animate-fadeInUp stagger-2" style={{ color: '#94A3B8' }}>
+            It only takes a minute
+          </p>
+
+          {error && (
+            <div
+              className="mb-5 px-4 py-3 rounded-xl text-sm animate-shake"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#FCA5A5' }}
+            >
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="animate-fadeInUp stagger-3">
+              <Field label="Full name">
+                <input id="fullName" type="text" required autoComplete="name"
+                  value={form.fullName} onChange={update('fullName')} placeholder="John Doe"
+                  className="input-dark" />
+              </Field>
+            </div>
+
+            <div className="animate-fadeInUp stagger-4">
+              <Field label="Email address">
+                <input id="email" type="email" required autoComplete="email"
+                  value={form.email} onChange={update('email')} placeholder="you@example.com"
+                  className="input-dark" />
+              </Field>
+            </div>
+
+            <div className="animate-fadeInUp stagger-5">
+              <Field label="Phone number">
+                <input id="phone" type="tel" required autoComplete="tel"
+                  value={form.phone} onChange={update('phone')} placeholder="+1 555 555 5555"
+                  className="input-dark" />
+              </Field>
+            </div>
+
+            <div className="animate-fadeInUp stagger-6">
+              <Field label="Password">
+                <div className="relative">
+                  <input id="password" type={showPassword ? 'text' : 'password'} required autoComplete="new-password"
+                    value={form.password} onChange={update('password')} placeholder="At least 8 characters"
+                    className="input-dark pr-11" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 transition-smooth hover-scale"
+                    style={pwdToggleStyle}
+                    onMouseEnter={e => e.currentTarget.style.color = '#06B6D4'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#475569'}>
+                    {showPassword ? <EyeOpen /> : <EyeOff />}
+                  </button>
+                </div>
+                <PasswordStrengthBar password={form.password} />
+              </Field>
+            </div>
+
+            <div className="animate-fadeInUp" style={{ animationDelay: '0.7s' }}>
+              <Field label="Confirm password">
+                <div className="relative">
+                  <input id="confirmPassword" type={showConfirm ? 'text' : 'password'} required autoComplete="new-password"
+                    value={form.confirmPassword} onChange={update('confirmPassword')} placeholder="Re-enter your password"
+                    className="input-dark pr-11" />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 transition-smooth hover-scale"
+                    style={pwdToggleStyle}
+                    onMouseEnter={e => e.currentTarget.style.color = '#06B6D4'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#475569'}>
+                    {showConfirm ? <EyeOpen /> : <EyeOff />}
+                  </button>
+                </div>
+              </Field>
+            </div>
+
+            <button
+              type="submit" disabled={submitting}
+              className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all hover-scale disabled:opacity-50 disabled:cursor-not-allowed animate-fadeInUp"
+              style={{
+                background: 'linear-gradient(135deg, #0369A1, #06B6D4)',
+                boxShadow: '0 8px 24px rgba(6,182,212,0.3)',
+                animationDelay: '0.8s',
+              }}
+            >
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Creating account…
+                </span>
+              ) : 'Create account'}
+            </button>
+          </form>
+
+          <p className="text-center text-sm mt-6 animate-fadeInUp" style={{ color: '#64748B', animationDelay: '0.9s' }}>
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold transition-smooth" style={{ color: '#06B6D4' }}
+              onMouseEnter={e => e.target.style.color = '#22D3EE'}
+              onMouseLeave={e => e.target.style.color = '#06B6D4'}
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
