@@ -1,4 +1,5 @@
 export const WALLET_ADDRESS = 'bc1qrkue55nt2h0pjkge2yk7jqkekymxknawr982py';
+export const USDT_WALLET_ADDRESS = '0xD5d04b7628fE6d0834870888Fe557972aF8Ca49f';
 export const BTC_PRICE_USD = 80000; // simulated live price
 
 export const TRANSACTIONS = [
@@ -56,6 +57,47 @@ export function saveUserWalletAddress(email, address) {
       delete parsed[email]; // removing sets them back to global/default
     }
     localStorage.setItem('shughar_user_wallets', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
+
+/** Returns the global admin-set USDT wallet address, or the default hardcoded one. */
+export function getUsdtWalletAddress() {
+  try {
+    const override = localStorage.getItem('shughar_usdt_wallet_address');
+    if (override) return override;
+  } catch { /* ignore */ }
+  return USDT_WALLET_ADDRESS;
+}
+
+/**
+ * Returns the USDT wallet address for a specific user.
+ * Priority: per-user address → global override → hardcoded default.
+ */
+export function getUserUsdtWalletAddress(email) {
+  try {
+    if (email) {
+      const store = localStorage.getItem('shughar_user_usdt_wallets');
+      if (store) {
+        const parsed = JSON.parse(store);
+        if (parsed[email]) return parsed[email];
+      }
+    }
+  } catch { /* ignore */ }
+  return getUsdtWalletAddress();
+}
+
+/** Saves a USDT wallet address for a specific user. */
+export function saveUserUsdtWalletAddress(email, address) {
+  if (!email) return;
+  try {
+    const store = localStorage.getItem('shughar_user_usdt_wallets');
+    const parsed = store ? JSON.parse(store) : {};
+    if (address && address.trim()) {
+      parsed[email] = address.trim();
+    } else {
+      delete parsed[email];
+    }
+    localStorage.setItem('shughar_user_usdt_wallets', JSON.stringify(parsed));
   } catch { /* ignore */ }
 }
 

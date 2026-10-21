@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWalletAddress, getUserWalletAddress, saveUserWalletAddress } from '../data/mockData.js';
+import { getWalletAddress, getUserWalletAddress, saveUserWalletAddress, getUsdtWalletAddress, getUserUsdtWalletAddress, saveUserUsdtWalletAddress } from '../data/mockData.js';
 import { authApi } from '../api/client.js';
 
 // -- Helpers ----------------------------------------------------------------
@@ -775,6 +775,7 @@ function TransactionsTab() {
 // -- Tab: Settings ----------------------------------------------------------
 
 function SettingsTab() {
+  // ── BTC ──
   const [address, setAddress] = useState(getWalletAddress());
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -793,8 +794,29 @@ function SettingsTab() {
     setSaved(false);
   }
 
+  // ── USDT ──
+  const [usdtAddress, setUsdtAddress] = useState(getUsdtWalletAddress());
+  const [usdtSaved, setUsdtSaved] = useState(false);
+  const [usdtError, setUsdtError] = useState('');
+
+  function handleUsdtSave() {
+    if (!usdtAddress.trim()) { setUsdtError('Address cannot be empty.'); return; }
+    localStorage.setItem('shughar_usdt_wallet_address', usdtAddress.trim());
+    setUsdtSaved(true);
+    setUsdtError('');
+    setTimeout(() => setUsdtSaved(false), 2500);
+  }
+
+  function handleUsdtReset() {
+    localStorage.removeItem('shughar_usdt_wallet_address');
+    setUsdtAddress('0xD5d04b7628fE6d0834870888Fe557972aF8Ca49f');
+    setUsdtSaved(false);
+  }
+
   return (
-    <div className="max-w-lg">
+    <div className="max-w-lg space-y-6">
+
+      {/* ── BTC Wallet Card ── */}
       <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
@@ -803,8 +825,8 @@ function SettingsTab() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">Global Wallet Address</h3>
-            <p className="text-xs text-slate-400 mt-0.5">This is shown to ALL users on the Deposit modal</p>
+            <h3 className="text-sm font-bold text-white">Global BTC Wallet Address</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Shown to ALL users on the Deposit modal (Bitcoin tab)</p>
           </div>
         </div>
 
@@ -818,7 +840,7 @@ function SettingsTab() {
             placeholder="bc1q..."
             className="w-full px-4 py-3 rounded-xl text-sm font-mono text-slate-200 focus:outline-none transition-all resize-none"
             style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}` }}
-            onFocus={e => e.target.style.borderColor = 'rgba(6,182,212,0.5)'}
+            onFocus={e => e.target.style.borderColor = 'rgba(245,158,11,0.5)'}
             onBlur={e => e.target.style.borderColor = error ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}
           />
           {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
@@ -835,11 +857,11 @@ function SettingsTab() {
             id="save-wallet-btn"
             onClick={handleSave}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
-            style={{ background: saved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #06B6D4, #6366F1)' }}>
+            style={{ background: saved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #F59E0B, #D97706)' }}>
             {saved ? (
               <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved!</>
             ) : (
-              'Save Wallet Address'
+              'Save BTC Address'
             )}
           </button>
         </div>
@@ -848,9 +870,66 @@ function SettingsTab() {
           <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <p className="text-xs text-amber-400/70">Changes take effect immediately - users will see the new address the next time they open the Deposit modal.</p>
+          <p className="text-xs text-amber-400/70">Changes take effect immediately — users will see the new address the next time they open the Deposit modal.</p>
         </div>
       </div>
+
+      {/* ── USDT Wallet Card ── */}
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(38,161,123,0.15)' }}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'rgba(38,161,123,0.1)', border: '1px solid rgba(38,161,123,0.25)', color: '#26A17B' }}>
+            ₮
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Global USDT Wallet Address</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Shown to ALL users on the Deposit modal (USDT tab)</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#26A17B', opacity: 0.8 }}>USDT Deposit Address (ERC-20)</label>
+          <textarea
+            id="usdt-wallet-address-input"
+            value={usdtAddress}
+            onChange={e => { setUsdtAddress(e.target.value); setUsdtSaved(false); setUsdtError(''); }}
+            rows={3}
+            placeholder="0x..."
+            className="w-full px-4 py-3 rounded-xl text-sm font-mono text-slate-200 focus:outline-none transition-all resize-none"
+            style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${usdtError ? 'rgba(239,68,68,0.4)' : 'rgba(38,161,123,0.15)'}` }}
+            onFocus={e => e.target.style.borderColor = 'rgba(38,161,123,0.5)'}
+            onBlur={e => e.target.style.borderColor = usdtError ? 'rgba(239,68,68,0.4)' : 'rgba(38,161,123,0.15)'}
+          />
+          {usdtError && <p className="text-xs text-red-400 mt-1">{usdtError}</p>}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleUsdtReset}
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            Reset to Default
+          </button>
+          <button
+            id="save-usdt-wallet-btn"
+            onClick={handleUsdtSave}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+            style={{ background: usdtSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #26A17B, #1a7a5e)' }}>
+            {usdtSaved ? (
+              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved!</>
+            ) : (
+              'Save USDT Address'
+            )}
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(38,161,123,0.06)', border: '1px solid rgba(38,161,123,0.15)' }}>
+          <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#26A17B' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p className="text-xs" style={{ color: 'rgba(38,161,123,0.7)' }}>Ensure this is an ERC-20 compatible address. Changes take effect immediately.</p>
+        </div>
+      </div>
+
     </div>
   );
 }
