@@ -37,8 +37,8 @@ export default function PortfolioChart() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-display font-semibold text-sm text-slate-200">Portfolio Overview</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">{period} performance snapshot</p>
+          <h3 className="font-display font-bold text-sm" style={{ color: 'var(--text-1)' }}>Portfolio Overview</h3>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{period} performance snapshot</p>
         </div>
         <div className="flex gap-1">
           {PERIODS.map((p) => (
@@ -56,7 +56,7 @@ export default function PortfolioChart() {
       {/* Chart area */}
       <div
         className="relative rounded-2xl p-3"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(6,182,212,0.08)' }}
+        style={{ background: 'var(--surface-high)', border: '1px solid var(--border)' }}
       >
         <svg viewBox="0 0 300 120" className="w-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -79,15 +79,15 @@ export default function PortfolioChart() {
       {/* Footer */}
       <div
         className="flex items-center justify-between mt-3 pt-3"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderTop: '1px solid var(--border)' }}
       >
         <div>
-          <p className="text-xs text-slate-400">Current value</p>
-          <p className="font-display font-bold text-sm text-slate-100">${last.toLocaleString()}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Current value</p>
+          <p className="font-display font-bold text-sm" style={{ color: 'var(--text-1)' }}>${last.toLocaleString()}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-slate-400">Change</p>
-          <p className={`font-display font-bold text-sm ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Change</p>
+          <p className={`font-display font-bold text-sm ${positive ? 'text-emerald-500' : 'text-red-500'}`}>
             {positive ? '+' : '-'}${Math.abs(delta).toLocaleString()}
           </p>
         </div>

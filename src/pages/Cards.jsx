@@ -48,9 +48,9 @@ export default function CardsPage() {
         <div className="glass-card rounded-[28px] p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Card centre</p>
-              <h2 className="font-display text-2xl text-slate-200">Banking cards</h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Card centre</p>
+              <h2 className="font-display text-2xl font-bold" style={{ color: 'var(--text-1)' }}>Banking cards</h2>
+              <p className="mt-2 text-sm" style={{ color: 'var(--text-2)' }}>
                 View your payment card details and rewards. Card controls are managed by our admin team.
               </p>
             </div>
@@ -97,7 +97,7 @@ export default function CardsPage() {
           {/* Physical card */}
           <div className="mt-6 flex justify-center">
             <div
-              className={`relative w-full max-w-md overflow-hidden rounded-2xl shadow-2xl transition-all duration-500 ${cardLocked ? 'grayscale opacity-70' : ''}`}
+              className={`virtual-debit-card relative w-full max-w-md overflow-hidden rounded-2xl shadow-2xl transition-all duration-500 ${cardLocked ? 'grayscale opacity-70' : ''}`}
               style={{
                 aspectRatio: '1.586 / 1',
                 background: cardLocked

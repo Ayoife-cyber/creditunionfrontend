@@ -144,7 +144,8 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search transactions…"
-          className="w-full pl-9 pr-4 py-2 text-xs bg-slate-800/50 rounded-xl border border-white/10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent/50 transition-all placeholder-slate-500"
+          className="w-full pl-9 pr-4 py-2 text-xs rounded-xl transition-all focus:outline-none"
+          style={{ background: 'var(--surface-high)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
         />
       </div>
 
@@ -167,9 +168,12 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
           <button
             key={s.key}
             onClick={() => setSortMode(s.key)}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all ${
-              sortMode === s.key ? 'border-brand-accent bg-brand-accent/10 text-brand-accent' : 'border-white/10 text-slate-400 bg-slate-800 hover:bg-slate-700'
-            }`}
+            className="rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all"
+            style={{
+              background: sortMode === s.key ? 'rgba(6,182,212,0.15)' : 'var(--surface-high)',
+              color:      sortMode === s.key ? 'var(--accent)' : 'var(--text-muted)',
+              border:     sortMode === s.key ? '1px solid var(--accent)' : '1px solid var(--border)',
+            }}
           >
             {s.label}
           </button>
@@ -187,8 +191,8 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-slate-300">No transactions yet</p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No transactions yet</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                 {filter !== 'all'
                   ? `No ${filter} transactions found. Try a different filter.`
                   : query
@@ -199,7 +203,14 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
           </div>
         ) : (
           sorted.map((tx) => (
-            <div key={tx.id} className="tx-item border border-transparent hover:border-white/5 hover:bg-slate-800/50 cursor-pointer" onClick={() => setSelectedTx(tx)}>
+            <div
+              key={tx.id}
+              className="tx-item rounded-xl p-2 cursor-pointer transition-colors"
+              style={{ border: '1px solid transparent' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-high)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
+              onClick={() => setSelectedTx(tx)}
+            >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: `${tx.color}15`, color: tx.color }}
@@ -207,17 +218,20 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
                 <TxIcon type={tx.type} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-200 truncate">{tx.label}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{tx.date}</p>
+                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>{tx.label}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{tx.date}</p>
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-sm font-bold" style={{ color: tx.color }}>
                   {tx.amount}
                 </p>
                 <span
-                  className={`inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                    tx.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-slate-800 text-slate-400 border border-white/5'
-                  }`}
+                  className="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: tx.status === 'pending' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
+                    color:      tx.status === 'pending' ? '#F59E0B' : '#10B981',
+                    border:     tx.status === 'pending' ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(16,185,129,0.2)',
+                  }}
                 >
                   {tx.status}
                 </span>

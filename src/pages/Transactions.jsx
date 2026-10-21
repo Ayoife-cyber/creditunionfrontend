@@ -61,8 +61,8 @@ export default function TransactionsPage() {
 
         {/* Page header */}
         <div className="flex flex-col gap-1 px-1">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Account activity</p>
-          <h3 className="font-display text-2xl text-slate-200">Transaction history</h3>
+          <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Account activity</p>
+          <h3 className="font-display text-2xl font-bold" style={{ color: 'var(--text-1)' }}>Transaction history</h3>
         </div>
 
         {/* Summary stats */}

@@ -15,6 +15,7 @@ import SupportTicketDrawer from '../components/SupportTicketDrawer.jsx';
 import Toast from '../components/Toast.jsx';
 import DashboardSkeleton from '../components/DashboardSkeleton.jsx';
 import SendMoneyModal from '../components/SendMoneyModal.jsx';
+import CurrencyConverter from '../components/CurrencyConverter.jsx';
 import { DEFAULT_BALANCE } from '../config/balanceConfig.js';
 
 const ACTION_MESSAGES = {
@@ -88,12 +89,13 @@ export default function Dashboard() {
   const quickInsights = useMemo(() => {
     const balance = user?.balanceUsd ?? DEFAULT_BALANCE.balanceUsd;
     const btc = user?.btcHolding ?? DEFAULT_BALANCE.btcHolding;
+    const usdt = user?.usdtHolding ?? DEFAULT_BALANCE.usdtHolding;
     return [
       { label: 'Spendable', value: `$${Math.round(balance * 0.62).toLocaleString()}`, detail: 'Ready for transfers' },
       { label: 'Savings goal', value: '68%', detail: 'On track this month' },
-      { label: 'BTC value', value: `$${Math.round(btc * 80000).toLocaleString()}`, detail: 'Based on live quote' },
+      { label: 'Crypto assets', value: `$${Math.round(btc * 82000 + usdt).toLocaleString()}`, detail: 'BTC + USDT combined' },
     ];
-  }, [user?.balanceUsd, user?.btcHolding]);
+  }, [user?.balanceUsd, user?.btcHolding, user?.usdtHolding]);
 
   function handleBalanceAction(action) {
     setSelectedAction(action);
@@ -142,6 +144,7 @@ export default function Dashboard() {
             user={user}
             balanceUsd={user?.balanceUsd ?? DEFAULT_BALANCE.balanceUsd}
             btcHolding={user?.btcHolding ?? DEFAULT_BALANCE.btcHolding}
+            usdtHolding={user?.usdtHolding ?? DEFAULT_BALANCE.usdtHolding}
             onAction={handleBalanceAction}
             onTopUp={handleTopUp}
           />
@@ -150,42 +153,47 @@ export default function Dashboard() {
 
         <StatsGrid balanceUsd={user?.balanceUsd ?? DEFAULT_BALANCE.balanceUsd} btcHolding={user?.btcHolding ?? DEFAULT_BALANCE.btcHolding} />
 
-        {/* Snapshot + Quick Actions */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-5">
+        {/* Converter + Snapshot + Quick Actions */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <CurrencyConverter />
 
           {/* Today's snapshot */}
-          <div className="glass-card rounded-3xl p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: '#334155' }}>
-                  Today&apos;s snapshot
-                </p>
-                <h3 className="font-display text-lg" style={{ color: '#E2E8F0' }}>Your money is moving well</h3>
-              </div>
-              <span
-                className="inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold"
-                style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10B981' }}
-              >
-                +8.2% this week
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {quickInsights.map((item) => (
-                <div key={item.label} className="stat-card rounded-2xl p-4">
-                  <p className="text-xs" style={{ color: '#475569' }}>{item.label}</p>
-                  <p className="mt-1 font-display text-lg font-semibold" style={{ color: '#F1F5F9' }}>{item.value}</p>
-                  <p className="mt-1 text-xs" style={{ color: '#334155' }}>{item.detail}</p>
+          <div className="glass-card rounded-3xl p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>
+                    Today&apos;s snapshot
+                  </p>
+                  <h3 className="font-display text-lg font-bold" style={{ color: 'var(--text-1)' }}>Account summary</h3>
                 </div>
-              ))}
+                <span
+                  className="inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                  style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10B981' }}
+                >
+                  +8.2% this week
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {quickInsights.map((item) => (
+                  <div key={item.label} className="stat-card rounded-2xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.label}</p>
+                      <p className="mt-0.5 font-display text-base font-bold" style={{ color: 'var(--text-1)' }}>{item.value}</p>
+                    </div>
+                    <p className="text-xs text-right" style={{ color: 'var(--text-muted)' }}>{item.detail}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Quick Actions */}
           <div className="glass-card rounded-3xl p-5">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: '#334155' }}>Quick actions</p>
-              <h3 className="font-display text-lg" style={{ color: '#E2E8F0' }}>Choose a flow</h3>
+              <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Quick actions</p>
+              <h3 className="font-display text-lg font-bold" style={{ color: 'var(--text-1)' }}>Choose a flow</h3>
             </div>
 
             <div className="mt-4 space-y-2">
@@ -197,15 +205,15 @@ export default function Dashboard() {
                     onClick={() => handleBalanceAction(action.key)}
                     className="w-full rounded-2xl px-3 py-3 text-left transition-smooth"
                     style={{
-                      background: active ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.03)',
-                      border: active ? '1px solid rgba(6,182,212,0.3)' : '1px solid rgba(255,255,255,0.05)',
+                      background: active ? 'rgba(6,182,212,0.12)' : 'var(--surface-high)',
+                      border: active ? '1.5px solid rgba(6,182,212,0.4)' : '1px solid var(--border)',
                       boxShadow: active ? '0 2px 12px rgba(6,182,212,0.1)' : 'none',
                     }}
-                    onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.2)'; e.currentTarget.style.background = 'rgba(6,182,212,0.05)'; }}}
-                    onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}}
+                    onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'; e.currentTarget.style.background = 'var(--surface-mid)'; }}}
+                    onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface-high)'; }}}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold" style={{ color: '#E2E8F0' }}>{action.title}</span>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>{action.title}</span>
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                         style={{ background: 'rgba(6,182,212,0.12)', color: '#06B6D4' }}
@@ -213,7 +221,7 @@ export default function Dashboard() {
                         {action.badge}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs" style={{ color: '#475569' }}>{action.description}</p>
+                    <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>{action.description}</p>
                   </button>
                 );
               })}
@@ -226,7 +234,7 @@ export default function Dashboard() {
               <p className="text-xs font-bold uppercase tracking-[0.24em]" style={{ color: '#06B6D4' }}>
                 {selectedQuickAction.title}
               </p>
-              <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>{selectedQuickAction.nextStep}</p>
+              <p className="mt-1 text-sm" style={{ color: 'var(--text-2)' }}>{selectedQuickAction.nextStep}</p>
             </div>
           </div>
         </div>

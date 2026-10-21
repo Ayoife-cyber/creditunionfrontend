@@ -26,16 +26,16 @@ export default function Sidebar({ activeSection, onNavigate, onLogout, user, onS
 
   return (
     <aside
-      className="hidden lg:flex flex-col w-72 fixed top-0 left-0 h-full z-40 sidebar"
-      style={{ backgroundColor: '#060F1E', borderRight: '1px solid rgba(6,182,212,0.1)' }}
+      className="hidden lg:flex flex-col w-72 fixed top-0 left-0 h-full z-40 sidebar transition-colors duration-200"
+      style={{ backgroundColor: 'var(--surface)', borderRight: '1px solid var(--border)' }}
     >
       {/* Logo */}
-      <div className="p-5 pb-4" style={{ borderBottom: '1px solid rgba(6,182,212,0.08)' }}>
+      <div className="p-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
         <Logo size="md" showText={true} />
       </div>
 
       {/* Profile */}
-      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(6,182,212,0.08)' }}>
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center gap-3 mb-4">
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center font-display font-black text-white text-base flex-shrink-0"
@@ -44,8 +44,8 @@ export default function Sidebar({ activeSection, onNavigate, onLogout, user, onS
             {profileName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="font-display font-bold text-sm truncate" style={{ color: '#F1F5F9' }}>{profileName}</p>
-            <p className="text-xs font-mono mt-0.5" style={{ color: '#475569' }}>ID: {profileId}</p>
+            <p className="font-display font-bold text-sm truncate" style={{ color: 'var(--text-1)' }}>{profileName}</p>
+            <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>ID: {profileId}</p>
           </div>
         </div>
 
@@ -65,9 +65,9 @@ export default function Sidebar({ activeSection, onNavigate, onLogout, user, onS
           <button
             onClick={() => onNavigate('/profile')}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition-smooth hover-lift"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(6,182,212,0.15)', color: '#94A3B8' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.4)'; e.currentTarget.style.color = '#06B6D4'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.15)'; e.currentTarget.style.color = '#94A3B8'; }}
+            style={{ background: 'var(--surface-high)', border: '1px solid var(--border)', color: 'var(--text-2)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; }}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -93,7 +93,7 @@ export default function Sidebar({ activeSection, onNavigate, onLogout, user, onS
       <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-5 custom-scroll">
         {MENU_GROUPS.map((group) => (
           <div key={group.title}>
-            <p className="px-3 text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#334155' }}>
+            <p className="px-3 text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
               {group.title}
             </p>
             <div className="space-y-0.5">
@@ -105,16 +105,17 @@ export default function Sidebar({ activeSection, onNavigate, onLogout, user, onS
                     onClick={() => handleItemClick(item)}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-smooth"
                     style={{
-                      color:       active ? '#06B6D4' : '#64748B',
-                      background:  active ? 'rgba(6,182,212,0.1)' : 'transparent',
-                      border:      active ? '1px solid rgba(6,182,212,0.2)' : '1px solid transparent',
+                      color:       active ? 'var(--accent)' : 'var(--text-2)',
+                      background:  active ? 'rgba(6,182,212,0.12)' : 'transparent',
+                      border:      active ? '1px solid rgba(6,182,212,0.3)' : '1px solid transparent',
+                      fontWeight:  active ? 600 : 500,
                     }}
-                    onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#E2E8F0'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}}
-                    onMouseLeave={e => { if (!active) { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.background = 'transparent'; }}}
+                    onMouseEnter={e => { if (!active) { e.currentTarget.style.color = 'var(--text-1)'; e.currentTarget.style.background = 'var(--surface-high)'; }}}
+                    onMouseLeave={e => { if (!active) { e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent'; }}}
                   >
                     <svg
                       className="w-4.5 h-4.5 flex-shrink-0"
-                      style={{ width:'18px', height:'18px', color: active ? '#06B6D4' : '#334155' }}
+                      style={{ width:'18px', height:'18px', color: active ? 'var(--accent)' : 'var(--text-muted)' }}
                       fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />

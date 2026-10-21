@@ -9,14 +9,42 @@ function getGreeting(hour) {
   return 'Good Evening';
 }
 
-export default function BalanceCard({ user, balanceUsd, btcHolding, onAction, onTopUp }) {
+export default function BalanceCard({ user, balanceUsd, btcHolding, usdtHolding, onAction, onTopUp }) {
   const [now, setNow] = useState(new Date());
   const [balanceHidden, setBalanceHidden] = useState(false);
+  const [prices, setPrices] = useState({ btcUsd: 82000, usdtUsd: 1.0 });
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    async function loadPrices() {
+      try {
+        const res = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,tether&vs_currencies=usd',
+          { signal: AbortSignal.timeout(4000) }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setPrices({
+            btcUsd: data?.bitcoin?.usd ?? 82000,
+            usdtUsd: data?.tether?.usd ?? 1.0,
+          });
+        }
+      } catch {}
+    }
+    loadPrices();
+    const iv = setInterval(loadPrices, 60000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const safeBtc = btcHolding ?? 0;
+  const safeUsdt = usdtHolding ?? 2500;
+  const btcVal = safeBtc * prices.btcUsd;
+  const usdtVal = safeUsdt * prices.usdtUsd;
+  const totalCryptoUsd = btcVal + usdtVal;
 
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
@@ -46,7 +74,7 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, onAction, on
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-slate-400 text-sm font-medium mb-1">{getGreeting(now.getHours())}</p>
             <h2 className="font-display font-bold text-2xl lg:text-3xl text-white">{user?.fullName || 'Member'}</h2>
@@ -58,10 +86,10 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, onAction, on
         </div>
 
         {/* Balance Section */}
-        <div className={`space-y-4 mb-8 ${balanceHidden ? 'balance-hidden' : ''}`}>
-          {/* USD Balance */}
+        <div className={`space-y-5 mb-8 ${balanceHidden ? 'balance-hidden' : ''}`}>
+          {/* USD Cash Balance */}
           <div>
-            <p className="text-slate-400 text-xs uppercase tracking-wide font-semibold mb-2">Total Balance</p>
+            <p className="text-slate-400 text-xs uppercase tracking-wide font-semibold mb-2">Total Fiat Balance</p>
             <div className="flex items-end gap-2 sm:gap-4">
               <span className="font-display font-extrabold text-5xl lg:text-6xl balance-display balance-font tracking-tight">
                 ${(balanceUsd ?? 0).toLocaleString()}
@@ -85,14 +113,50 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, onAction, on
             </div>
           </div>
 
-          {/* BTC Balance */}
-          <div className="flex items-end gap-2">
-            <span className="text-3xl text-cyan-400">₿</span>
-            <div>
-              <p className="text-slate-400 text-xs font-medium">Bitcoin Holdings</p>
-              <p className="font-display font-semibold text-2xl balance-display balance-font">
-                {(btcHolding ?? 0).toFixed(6)} BTC
-              </p>
+          {/* Crypto Portfolio Summary */}
+          <div className="rounded-2xl p-3.5 sm:p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Crypto Portfolio Value</span>
+              </div>
+              <div className="font-display font-bold text-lg sm:text-xl text-cyan-300 balance-display balance-font">
+                ≈ ${totalCryptoUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-slate-400 font-normal">USD</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {/* BTC */}
+              <div className="flex items-center justify-between sm:justify-start sm:gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>₿</span>
+                  <div>
+                    <p className="text-[11px] text-slate-400 font-medium">Bitcoin</p>
+                    <p className="font-display font-semibold text-sm text-slate-200 balance-display">
+                      {safeBtc.toFixed(6)} BTC
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400 sm:ml-auto balance-display">
+                  ≈ ${btcVal.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              {/* USDT */}
+              <div className="flex items-center justify-between sm:justify-start sm:gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm" style={{ background: 'rgba(38,161,123,0.15)', color: '#26A17B' }}>₮</span>
+                  <div>
+                    <p className="text-[11px] text-slate-400 font-medium">Tether USDT</p>
+                    <p className="font-display font-semibold text-sm text-slate-200 balance-display">
+                      {safeUsdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400 sm:ml-auto balance-display">
+                  ≈ ${usdtVal.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
           </div>
         </div>

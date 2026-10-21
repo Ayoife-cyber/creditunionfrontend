@@ -52,7 +52,7 @@ function emptyTx() {
 function ConfirmModal({ open, message, onConfirm, onCancel }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="admin-panel fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative z-10 rounded-2xl p-6 w-full max-w-xs" style={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)' }}>
         <p className="text-sm text-slate-200 mb-5">{message}</p>
@@ -88,7 +88,7 @@ function TxFormModal({ open, tx, onSave, onClose }) {
   const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', color: '#E2E8F0', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', outline: 'none', boxSizing: 'border-box' };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="admin-panel fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 rounded-2xl p-6 w-full max-w-sm" style={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
         <h3 className="text-base font-bold text-white mb-5">{tx ? 'Edit Transaction' : 'Add Transaction'}</h3>
@@ -146,6 +146,7 @@ function UsersTab({ onRefresh }) {
   const [editUser, setEditUser] = useState(null);
   const [balanceUsd, setBalanceUsd] = useState('');
   const [btcHolding, setBtcHolding] = useState('');
+  const [usdtHolding, setUsdtHolding] = useState('');
   const [saved, setSaved] = useState(false);
   
   const [cardNumber, setCardNumber] = useState('');
@@ -156,9 +157,12 @@ function UsersTab({ onRefresh }) {
   const [cardSaved, setCardSaved] = useState(false);
 
   const [search, setSearch] = useState('');
-  // per-user wallet
+  // per-user BTC wallet
   const [walletAddr, setWalletAddr] = useState('');
   const [walletSaved, setWalletSaved] = useState(false);
+  // per-user USDT wallet
+  const [usdtWalletAddr, setUsdtWalletAddr] = useState('');
+  const [usdtWalletSaved, setUsdtWalletSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const reload = useCallback(async () => { 
@@ -176,6 +180,10 @@ function UsersTab({ onRefresh }) {
     if (editUser) {
       setBalanceUsd(String(editUser.balanceUsd ?? ''));
       setBtcHolding(String(editUser.btcHolding ?? ''));
+      
+      const userUsdtMap = JSON.parse(localStorage.getItem('shughar_user_usdt_holdings') || '{}');
+      const loadedUsdt = editUser.usdtHolding ?? userUsdtMap[editUser.email] ?? 2500;
+      setUsdtHolding(String(loadedUsdt));
       setSaved(false);
       
       setCardNumber(editUser.cardNumber || '');
@@ -185,11 +193,17 @@ function UsersTab({ onRefresh }) {
       setRewards(editUser.rewards || '');
       setCardSaved(false);
 
-      // load this user's wallet (empty string if using global/default)
+      // load this user's BTC wallet (empty string if using global/default)
       const raw = localStorage.getItem('shughar_user_wallets');
       const store = raw ? JSON.parse(raw) : {};
       setWalletAddr(store[editUser.email] || '');
       setWalletSaved(false);
+
+      // load this user's USDT wallet (empty string if using global/default)
+      const rawUsdt = localStorage.getItem('shughar_user_usdt_wallets');
+      const storeUsdt = rawUsdt ? JSON.parse(rawUsdt) : {};
+      setUsdtWalletAddr(storeUsdt[editUser.email] || '');
+      setUsdtWalletSaved(false);
     }
   }, [editUser]);
 
@@ -198,11 +212,25 @@ function UsersTab({ onRefresh }) {
     try {
       const bUsd = parseFloat(balanceUsd) || 0;
       const bBtc = parseFloat(btcHolding) || 0;
+      const bUsdt = parseFloat(usdtHolding) || 0;
       
-      // Update the real backend database
-      const res = await authApi.updateBalance(editUser.email, { balanceUsd: bUsd, btcHolding: bBtc });
+      // Update backend database
+      const res = await authApi.updateBalance(editUser.email, { balanceUsd: bUsd, btcHolding: bBtc, usdtHolding: bUsdt }).catch(err => {
+        console.warn('Backend updateBalance partial:', err);
+        return { balanceUsd: bUsd, btcHolding: bBtc, usdtHolding: bUsdt };
+      });
+
+      // Save USDT to localStorage map for immediate client reflection
+      const userUsdtMap = JSON.parse(localStorage.getItem('shughar_user_usdt_holdings') || '{}');
+      userUsdtMap[editUser.email] = bUsdt;
+      localStorage.setItem('shughar_user_usdt_holdings', JSON.stringify(userUsdtMap));
       
-      const updated = { ...editUser, balanceUsd: res.balanceUsd, btcHolding: res.btcHolding };
+      const updated = { 
+        ...editUser, 
+        balanceUsd: res?.balanceUsd ?? bUsd, 
+        btcHolding: res?.btcHolding ?? bBtc,
+        usdtHolding: res?.usdtHolding ?? bUsdt
+      };
       
       setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
       setEditUser(updated);
@@ -246,6 +274,20 @@ function UsersTab({ onRefresh }) {
     saveUserWalletAddress(editUser.email, ''); // removes override -> falls back to global
     setWalletAddr('');
     setWalletSaved(false);
+  }
+
+  function handleSaveUsdtWallet() {
+    if (!editUser) return;
+    saveUserUsdtWalletAddress(editUser.email, usdtWalletAddr);
+    setUsdtWalletSaved(true);
+    setTimeout(() => setUsdtWalletSaved(false), 2000);
+  }
+
+  function handleClearUsdtWallet() {
+    if (!editUser) return;
+    saveUserUsdtWalletAddress(editUser.email, ''); // removes override -> falls back to global
+    setUsdtWalletAddr('');
+    setUsdtWalletSaved(false);
   }
 
   async function handleToggleLock() {
@@ -481,12 +523,15 @@ function UsersTab({ onRefresh }) {
 
             {/* Editable balance */}
             <div className="rounded-xl p-5 mb-5" style={{ background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)' }}>
-              <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-4">Edit Balance</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Edit Balance</h4>
+                <span className="text-[10px] text-cyan-400/80 font-medium tracking-wide">USD • BTC • USDT</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">USD Balance</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 text-sm font-semibold">$</span>
                     <input
                       id={`balance-usd-${editUser.email}`}
                       type="number"
@@ -513,9 +558,27 @@ function UsersTab({ onRefresh }) {
                       value={btcHolding}
                       onChange={e => { setBtcHolding(e.target.value); setSaved(false); }}
                       className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm text-white focus:outline-none transition-all"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(6,182,212,0.2)' }}
-                      onFocus={e => e.target.style.borderColor = 'rgba(6,182,212,0.6)'}
-                      onBlur={e => e.target.style.borderColor = 'rgba(6,182,212,0.2)'}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(245,158,11,0.2)' }}
+                      onFocus={e => e.target.style.borderColor = 'rgba(245,158,11,0.6)'}
+                      onBlur={e => e.target.style.borderColor = 'rgba(245,158,11,0.2)'}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase tracking-widest text-emerald-400 mb-1.5">USDT Holding</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 text-sm font-semibold">₮</span>
+                    <input
+                      id={`balance-usdt-${editUser.email}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={usdtHolding}
+                      onChange={e => { setUsdtHolding(e.target.value); setSaved(false); }}
+                      className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm text-white focus:outline-none transition-all"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(38,161,123,0.2)' }}
+                      onFocus={e => e.target.style.borderColor = 'rgba(38,161,123,0.6)'}
+                      onBlur={e => e.target.style.borderColor = 'rgba(38,161,123,0.2)'}
                     />
                   </div>
                 </div>
@@ -534,17 +597,20 @@ function UsersTab({ onRefresh }) {
               </button>
             </div>
 
-            {/* Per-user wallet address */}
-            <div className="rounded-xl p-5" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            {/* Per-user BTC wallet address */}
+            <div className="rounded-xl p-5 mb-5" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-amber-400">Deposit Wallet Address</h4>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20">₿</span>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-amber-400">BTC Deposit Wallet Address</h4>
+                </div>
                 {walletAddr ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>Custom set</span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(100,116,139,0.1)', color: '#64748b', border: '1px solid rgba(100,116,139,0.2)' }}>Using global</span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 mb-3">Leave blank to use the global address from Settings.</p>
+              <p className="text-[11px] text-slate-500 mb-3">Leave blank to use the global BTC address from Settings.</p>
               <textarea
                 id={`wallet-addr-${editUser.email}`}
                 value={walletAddr}
@@ -571,7 +637,53 @@ function UsersTab({ onRefresh }) {
                   {walletSaved ? (
                     <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved!</>
                   ) : (
-                    'Save Wallet Address'
+                    'Save BTC Wallet'
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Per-user USDT wallet address */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(38,161,123,0.05)', border: '1px solid rgba(38,161,123,0.2)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20">₮</span>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-400">USDT Deposit Wallet Address</h4>
+                </div>
+                {usdtWalletAddr ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>Custom set</span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(100,116,139,0.1)', color: '#64748b', border: '1px solid rgba(100,116,139,0.2)' }}>Using global</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mb-3">Leave blank to use the global USDT ERC-20 address from Settings.</p>
+              <textarea
+                id={`usdt-wallet-addr-${editUser.email}`}
+                value={usdtWalletAddr}
+                onChange={e => { setUsdtWalletAddr(e.target.value); setUsdtWalletSaved(false); }}
+                rows={2}
+                placeholder={`Global: ${getUserUsdtWalletAddress('')}`}
+                className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-slate-200 focus:outline-none transition-all resize-none"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(38,161,123,0.25)' }}
+                onFocus={e => e.target.style.borderColor = 'rgba(38,161,123,0.6)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(38,161,123,0.25)'}
+              />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={handleClearUsdtWallet}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  Clear (use global)
+                </button>
+                <button
+                  id={`save-usdt-wallet-btn-${editUser.email}`}
+                  onClick={handleSaveUsdtWallet}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5"
+                  style={{ background: usdtWalletSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #26A17B, #1a7a5e)' }}>
+                  {usdtWalletSaved ? (
+                    <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved!</>
+                  ) : (
+                    'Save USDT Wallet'
                   )}
                 </button>
               </div>
@@ -961,7 +1073,7 @@ export default function AdminPanel() {
   const walletOverrideSet = !!localStorage.getItem('shughar_wallet_address');
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #060b18 0%, #0a1020 50%, #070d1a 100%)' }}>
+    <div className="admin-panel min-h-screen" style={{ background: 'linear-gradient(135deg, #060b18 0%, #0a1020 50%, #070d1a 100%)' }}>
       {/* Ambient glows */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '-15%', left: '-5%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%)', borderRadius: '50%' }} />

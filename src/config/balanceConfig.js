@@ -2,4 +2,5 @@
 export const DEFAULT_BALANCE = {
   balanceUsd: 30220,
   btcHolding: 0.0156,
+  usdtHolding: 2500,
 };

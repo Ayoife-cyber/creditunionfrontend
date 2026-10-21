@@ -28,6 +28,14 @@ function normaliseUser(raw) {
     // balance
     balanceUsd: raw.balanceUsd ?? DEFAULT_BALANCE.balanceUsd,
     btcHolding: raw.btcHolding ?? DEFAULT_BALANCE.btcHolding,
+    usdtHolding: (() => {
+      if (raw.usdtHolding !== undefined && raw.usdtHolding !== null) return raw.usdtHolding;
+      try {
+        const map = JSON.parse(localStorage.getItem('shughar_user_usdt_holdings') || '{}');
+        if (raw.email && map[raw.email] !== undefined) return map[raw.email];
+      } catch {}
+      return DEFAULT_BALANCE.usdtHolding;
+    })(),
     // pass everything else through
     ...raw,
   };
