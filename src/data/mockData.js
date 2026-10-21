@@ -1,4 +1,4 @@
-export const WALLET_ADDRESS = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
+export const WALLET_ADDRESS = 'bc1qrkue55nt2h0pjkge2yk7jqkekymxknawr982py';
 export const BTC_PRICE_USD = 80000; // simulated live price
 
 export const TRANSACTIONS = [
