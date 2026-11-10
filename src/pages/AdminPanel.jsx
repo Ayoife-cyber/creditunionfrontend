@@ -185,10 +185,25 @@ function UsersTab({ onRefresh }) {
   const [sendMessageSaved, setSendMessageSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const reload = useCallback(async () => { 
+  const reload = useCallback(async () => {
     try {
       const data = await authApi.getUsers();
-      setUsers(data);
+      let sendEnabledStore = {};
+      let sendMessageStore = {};
+      try {
+        sendEnabledStore = JSON.parse(localStorage.getItem('shughar_user_send_enabled') || '{}');
+        sendMessageStore = JSON.parse(localStorage.getItem('shughar_user_send_messages') || '{}');
+      } catch { /* ignore malformed local overrides */ }
+
+      setUsers((data || []).map(user => ({
+        ...user,
+        sendEnabled: Object.prototype.hasOwnProperty.call(sendEnabledStore, user.email)
+          ? sendEnabledStore[user.email] !== false
+          : user.sendEnabled !== false,
+        sendMessage: Object.prototype.hasOwnProperty.call(sendMessageStore, user.email)
+          ? sendMessageStore[user.email]
+          : (user.sendMessage || ''),
+      })));
     } catch (err) {
       console.error('Failed to fetch users:', err);
     }

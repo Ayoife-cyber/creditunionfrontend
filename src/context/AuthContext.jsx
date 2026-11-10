@@ -11,6 +11,7 @@ const PROFILE_KEY = 'shughar_profile';
 function normaliseUser(raw) {
   if (!raw) return null;
   return {
+    ...raw,
     // identity
     fullName:      raw.fullName      || raw.name        || raw.username || '',
     email:         raw.email         || '',
@@ -46,8 +47,6 @@ function normaliseUser(raw) {
     })(),
     sendEnabled: raw.sendEnabled !== undefined ? raw.sendEnabled !== false : getUserSendEnabled(raw.email),
     sendMessage: raw.sendMessage !== undefined ? raw.sendMessage : getUserSendMessage(raw.email),
-    // pass everything else through
-    ...raw,
   };
 }
 
