@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 
 // ── Fetch live BTC + USDT prices ───────────────────────────────────────────
 async function fetchLivePrices() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(
       'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,tether&vs_currencies=usd',
-      { signal: AbortSignal.timeout(5000) }
+      { signal: controller.signal }
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -14,6 +16,7 @@ async function fetchLivePrices() {
       usdtUsd: data?.tether?.usd  ?? null,
     };
   } catch { return null; }
+  finally { clearTimeout(timeout); }
 }
 
 const COINS = [
@@ -78,9 +81,9 @@ export default function CurrencyConverter() {
   const toMeta   = COINS.find(c => c.key === toCoin);
 
   return (
-    <div className="glass-card rounded-3xl p-5">
+    <div className="glass-card h-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Currency Converter</p>
           <h3 className="font-display text-lg font-bold" style={{ color: 'var(--text-1)' }}>Convert Crypto & USD</h3>
@@ -97,11 +100,11 @@ export default function CurrencyConverter() {
       {/* From */}
       <div className="rounded-2xl p-4 mb-2" style={{ background: 'var(--surface-high)', border: '1px solid var(--border)' }}>
         <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>From</p>
-        <div className="flex items-center gap-3">
+        <div className="grid min-w-0 grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-3">
           <select
             value={fromCoin}
             onChange={e => setFromCoin(e.target.value)}
-            className="flex-shrink-0 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none transition-all"
+            className="w-full min-w-0 rounded-xl px-2 py-2 text-sm font-bold focus:outline-none transition-all sm:w-auto sm:px-3"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: fromMeta?.color }}
           >
             {COINS.map(c => (
@@ -113,9 +116,11 @@ export default function CurrencyConverter() {
           <input
             type="number"
             min="0"
+            step="any"
+            inputMode="decimal"
             value={amount}
             onChange={e => setAmount(e.target.value)}
-            className="flex-1 bg-transparent text-right text-xl font-bold focus:outline-none"
+            className="min-w-0 w-full bg-transparent text-right text-xl font-bold focus:outline-none"
             style={{ color: 'var(--text-1)' }}
             placeholder="0"
           />
@@ -143,11 +148,11 @@ export default function CurrencyConverter() {
       {/* To */}
       <div className="rounded-2xl p-4 mb-4" style={{ background: 'var(--surface-high)', border: '1px solid var(--border)' }}>
         <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>To</p>
-        <div className="flex items-center gap-3">
+        <div className="grid min-w-0 grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-3">
           <select
             value={toCoin}
             onChange={e => setToCoin(e.target.value)}
-            className="flex-shrink-0 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none transition-all"
+            className="w-full min-w-0 rounded-xl px-2 py-2 text-sm font-bold focus:outline-none transition-all sm:w-auto sm:px-3"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: toMeta?.color }}
           >
             {COINS.map(c => (
@@ -156,7 +161,7 @@ export default function CurrencyConverter() {
               </option>
             ))}
           </select>
-          <p className="flex-1 text-right text-xl font-bold" style={{ color: toMeta?.color }}>
+          <p className="min-w-0 break-words text-right text-xl font-bold" style={{ color: toMeta?.color }}>
             {formatResult(result, toCoin)}
           </p>
         </div>
@@ -164,9 +169,9 @@ export default function CurrencyConverter() {
       </div>
 
       {/* Rate reference */}
-      <div className="flex items-center justify-between text-xs px-1" style={{ color: 'var(--text-muted)' }}>
-        <span>1 BTC = ${btcPrice.toLocaleString()}</span>
-        <span>1 USDT = ${usdtPrice.toFixed(4)}</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+        <span className="whitespace-nowrap">1 BTC = ${btcPrice.toLocaleString()}</span>
+        <span className="whitespace-nowrap">1 USDT = ${usdtPrice.toFixed(4)}</span>
       </div>
     </div>
   );
