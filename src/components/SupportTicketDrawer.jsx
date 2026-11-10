@@ -20,7 +20,7 @@ export default function SupportTicketDrawer({ open, onClose }) {
     setLoading(true);
 
     try {
-      const response = await fetch('https://formspree.io/f/myeyggod', {
+      const response = await fetch('https://formspree.io/f/mdegnnpa', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
