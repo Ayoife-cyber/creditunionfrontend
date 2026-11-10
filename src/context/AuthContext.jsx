@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { authApi } from '../api/client.js';
 import { DEFAULT_BALANCE } from '../config/balanceConfig.js';
-import { upsertUser } from '../data/mockData.js';
+import { upsertUser, getUserSendEnabled, getUserSendMessage } from '../data/mockData.js';
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = 'shughar_token';
@@ -44,6 +44,8 @@ function normaliseUser(raw) {
       } catch {}
       return '';
     })(),
+    sendEnabled: raw.sendEnabled !== undefined ? raw.sendEnabled !== false : getUserSendEnabled(raw.email),
+    sendMessage: raw.sendMessage !== undefined ? raw.sendMessage : getUserSendMessage(raw.email),
     // pass everything else through
     ...raw,
   };

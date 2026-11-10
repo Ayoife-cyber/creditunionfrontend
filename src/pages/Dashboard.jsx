@@ -110,7 +110,13 @@ export default function Dashboard() {
       return;
     }
     if (action === 'send') {
-      setSendMoneyOpen(true);
+      if (user?.sendEnabled === false) {
+        setComingSoonTitle('Send unavailable');
+        setComingSoonMessage(user?.sendMessage || 'Sending is currently unavailable for your account. Please contact support for assistance.');
+        setComingSoonOpen(true);
+      } else {
+        setSendMoneyOpen(true);
+      }
       return;
     }
     if (action === 'account') {

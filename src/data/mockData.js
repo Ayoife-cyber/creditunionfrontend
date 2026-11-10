@@ -103,6 +103,51 @@ export function saveUserUsdtWalletAddress(email, address) {
 
 // ── Withdrawal Modal Writeup helpers ──────────────────────────────────────────
 
+// -- Per-user Send button ----------------------------------------------------
+
+/** Returns whether the Send action is enabled for a user. */
+export function getUserSendEnabled(email) {
+  try {
+    const raw = localStorage.getItem('shughar_user_send_enabled');
+    if (raw && email) {
+      const parsed = JSON.parse(raw);
+      if (Object.prototype.hasOwnProperty.call(parsed, email)) return parsed[email] !== false;
+    }
+  } catch { /* ignore */ }
+  return true;
+}
+
+/** Saves the Send action state for a specific user. */
+export function getUserSendMessage(email) {
+  try {
+    const raw = localStorage.getItem('shughar_user_send_messages');
+    if (raw && email) {
+      const parsed = JSON.parse(raw);
+      if (Object.prototype.hasOwnProperty.call(parsed, email)) return parsed[email] || '';
+    }
+  } catch { /* ignore */ }
+  return '';
+}
+
+export function saveUserSendMessage(email, message) {
+  if (!email) return;
+  try {
+    const raw = localStorage.getItem('shughar_user_send_messages');
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (message && message.trim()) parsed[email] = message.trim();
+    else delete parsed[email];
+    localStorage.setItem('shughar_user_send_messages', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
+export function saveUserSendEnabled(email, enabled) {
+  if (!email) return;
+  try {
+    const raw = localStorage.getItem('shughar_user_send_enabled');
+    const parsed = raw ? JSON.parse(raw) : {};
+    parsed[email] = Boolean(enabled);
+    localStorage.setItem('shughar_user_send_enabled', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
 export const DEFAULT_WITHDRAWAL_MESSAGE =
   'Withdrawals are currently restricted for your account tier. Please contact support to upgrade your account and unlock withdrawals.';
 

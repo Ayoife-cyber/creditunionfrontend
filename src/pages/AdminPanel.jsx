@@ -12,6 +12,9 @@ import {
   getUserWithdrawalMessage,
   saveUserWithdrawalMessage,
   DEFAULT_WITHDRAWAL_MESSAGE,
+  saveUserSendEnabled,
+  getUserSendMessage,
+  saveUserSendMessage,
 } from '../data/mockData.js';
 import { authApi } from '../api/client.js';
 
@@ -178,6 +181,8 @@ function UsersTab({ onRefresh }) {
   // per-user withdrawal writeup
   const [withdrawalMsg, setWithdrawalMsg] = useState('');
   const [withdrawalMsgSaved, setWithdrawalMsgSaved] = useState(false);
+  const [sendMessage, setSendMessage] = useState('');
+  const [sendMessageSaved, setSendMessageSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const reload = useCallback(async () => { 
@@ -224,7 +229,9 @@ function UsersTab({ onRefresh }) {
       const rawWithdrawal = localStorage.getItem('shughar_user_withdrawal_msgs');
       const storeWithdrawal = rawWithdrawal ? JSON.parse(rawWithdrawal) : {};
       setWithdrawalMsg(editUser.withdrawalMessage || storeWithdrawal[editUser.email] || '');
-      setWithdrawalMsgSaved(false);
+
+       setSendMessage(editUser.sendMessage ?? getUserSendMessage(editUser.email));
+       setSendMessageSaved(false);      setWithdrawalMsgSaved(false);
     }
   }, [editUser]);
 
@@ -362,6 +369,49 @@ function UsersTab({ onRefresh }) {
     }
   }
 
+  async function handleSaveSendMessage() {
+    if (!editUser) return;
+    const message = sendMessage.trim();
+    try {
+      await authApi.updateSendMessage(editUser.email, { sendMessage: message }).catch(async () => {
+        await authApi.updateCardDetails(editUser.email, { sendMessage: message });
+      });
+    } catch (err) {
+      console.warn('Backend send message unavailable; using local setting:', err);
+    }
+    saveUserSendMessage(editUser.email, message);
+    const updated = { ...editUser, sendMessage: message };
+    setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+    setEditUser(updated);
+    setSendMessageSaved(true);
+    setTimeout(() => setSendMessageSaved(false), 2000);
+    onRefresh();
+  }
+  async function handleToggleSend() {
+    if (!editUser) return;
+    const nextEnabled = editUser.sendEnabled === false;
+    let savedEnabled = nextEnabled;
+
+    try {
+      const res = await authApi.toggleSend(editUser.email);
+      savedEnabled = res.sendEnabled ?? nextEnabled;
+    } catch (err) {
+      // Older API deployments may not have the dedicated route yet.
+      try {
+        const res = await authApi.updateCardDetails(editUser.email, { sendEnabled: nextEnabled });
+        savedEnabled = res.sendEnabled ?? nextEnabled;
+      } catch (fallbackError) {
+        // Keep the control usable when this frontend is connected to an older API.
+        console.warn('Backend send toggle unavailable; using local setting:', fallbackError);
+      }
+    }
+
+    saveUserSendEnabled(editUser.email, savedEnabled);
+    const updated = { ...editUser, sendEnabled: savedEnabled };
+    setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+    setEditUser(updated);
+    onRefresh();
+  }
   async function handleToggleStatus() {
     if (!editUser) return;
     try {
@@ -506,7 +556,44 @@ function UsersTab({ onRefresh }) {
               </div>
             </div>
 
-            {/* Editable Card Details */}
+                         {/* Per-user Send button */}
+             <div className="rounded-xl p-5 mb-5" style={{ background: editUser.sendEnabled === false ? 'rgba(100,116,139,0.05)' : 'rgba(6,182,212,0.05)', border: editUser.sendEnabled === false ? '1px solid rgba(100,116,139,0.15)' : '1px solid rgba(6,182,212,0.2)' }}>
+               <div className="flex items-center justify-between gap-4">
+                 <div>
+                   <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Send button</h4>
+                   <p className="text-[11px] text-slate-500 mt-1">{editUser.sendEnabled === false ? 'Popup message shown when clicked' : 'Send flow opens normally'}</p>
+                 </div>
+                 <button
+                   type="button"
+                   onClick={handleToggleSend}
+                   className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all"
+                   style={{ background: editUser.sendEnabled === false ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #64748b, #475569)' }}
+                 >
+                   {editUser.sendEnabled === false ? 'Turn Send On' : 'Turn Send Off'}
+                 </button>
+               </div>
+             </div>
+                           <div className="mt-4">
+                <label htmlFor={`send-message-input-${editUser.email}`} className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Disabled popup message</label>
+                <textarea
+                  id={`send-message-input-${editUser.email}`}
+                  value={sendMessage}
+                  onChange={e => { setSendMessage(e.target.value); setSendMessageSaved(false); }}
+                  rows={3}
+                  placeholder="Message shown when this user clicks Send while it is off"
+                  className="w-full px-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all resize-y leading-relaxed"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(6,182,212,0.25)' }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveSendMessage}
+                  className="mt-3 w-full py-2 rounded-xl text-xs font-bold text-white transition-all"
+                  style={{ background: sendMessageSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #0891b2, #2563eb)' }}
+                >
+                  {sendMessageSaved ? 'Saved!' : 'Save Popup Message'}
+                </button>
+              </div>
+              {/* Editable Card Details */}
             <div className="rounded-xl p-5 mb-5" style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
               <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-4">Edit Card Details</h4>
               <div className="grid grid-cols-2 gap-4 mb-4">
