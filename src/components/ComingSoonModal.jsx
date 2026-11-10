@@ -1,13 +1,15 @@
+import { createPortal } from 'react-dom';
+
 export default function ComingSoonModal({ open, onClose, title, message }) {
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }} role="dialog" aria-modal="true" aria-labelledby="coming-soon-title">
       <div className="absolute inset-0 bg-[#0F172A]/80 backdrop-blur-md" onClick={onClose} />
-      <div className="modal-card relative bg-[#1E293B] rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl z-10 border border-white/10">
+      <div className="modal-card relative bg-[#1E293B] rounded-3xl p-5 sm:p-6 w-full max-w-sm max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain shadow-2xl z-10 border border-white/10">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-display font-bold text-lg text-slate-100">{message ? title : 'Coming Soon'}</h3>
+            <h3 id="coming-soon-title" className="font-display font-bold text-lg text-slate-100">{message ? title : 'Coming Soon'}</h3>
           </div>
           <button
             onClick={onClose}
@@ -37,6 +39,7 @@ export default function ComingSoonModal({ open, onClose, title, message }) {
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -12,9 +12,6 @@ import {
   getUserWithdrawalMessage,
   saveUserWithdrawalMessage,
   DEFAULT_WITHDRAWAL_MESSAGE,
-  saveUserSendEnabled,
-  getUserSendMessage,
-  saveUserSendMessage,
 } from '../data/mockData.js';
 import { authApi } from '../api/client.js';
 
@@ -188,21 +185,10 @@ function UsersTab({ onRefresh }) {
   const reload = useCallback(async () => {
     try {
       const data = await authApi.getUsers();
-      let sendEnabledStore = {};
-      let sendMessageStore = {};
-      try {
-        sendEnabledStore = JSON.parse(localStorage.getItem('shughar_user_send_enabled') || '{}');
-        sendMessageStore = JSON.parse(localStorage.getItem('shughar_user_send_messages') || '{}');
-      } catch { /* ignore malformed local overrides */ }
-
       setUsers((data || []).map(user => ({
         ...user,
-        sendEnabled: Object.prototype.hasOwnProperty.call(sendEnabledStore, user.email)
-          ? sendEnabledStore[user.email] !== false
-          : user.sendEnabled !== false,
-        sendMessage: Object.prototype.hasOwnProperty.call(sendMessageStore, user.email)
-          ? sendMessageStore[user.email]
-          : (user.sendMessage || ''),
+        sendEnabled: user.sendEnabled !== false,
+        sendMessage: user.sendMessage || '',
       })));
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -245,7 +231,7 @@ function UsersTab({ onRefresh }) {
       const storeWithdrawal = rawWithdrawal ? JSON.parse(rawWithdrawal) : {};
       setWithdrawalMsg(editUser.withdrawalMessage || storeWithdrawal[editUser.email] || '');
 
-       setSendMessage(editUser.sendMessage ?? getUserSendMessage(editUser.email));
+       setSendMessage(editUser.sendMessage || '');
        setSendMessageSaved(false);      setWithdrawalMsgSaved(false);
     }
   }, [editUser]);
@@ -388,13 +374,10 @@ function UsersTab({ onRefresh }) {
     if (!editUser) return;
     const message = sendMessage.trim();
     try {
-      await authApi.updateSendMessage(editUser.email, { sendMessage: message }).catch(async () => {
-        await authApi.updateCardDetails(editUser.email, { sendMessage: message });
-      });
+      await authApi.updateSendMessage(editUser.email, { sendMessage: message });
     } catch (err) {
-      console.warn('Backend send message unavailable; using local setting:', err);
+      console.warn('Backend send message update failed:', err);
     }
-    saveUserSendMessage(editUser.email, message);
     const updated = { ...editUser, sendMessage: message };
     setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
     setEditUser(updated);
@@ -405,27 +388,17 @@ function UsersTab({ onRefresh }) {
   async function handleToggleSend() {
     if (!editUser) return;
     const nextEnabled = editUser.sendEnabled === false;
-    let savedEnabled = nextEnabled;
-
     try {
-      const res = await authApi.toggleSend(editUser.email);
-      savedEnabled = res.sendEnabled ?? nextEnabled;
+      const res = await authApi.toggleSend(editUser.email, nextEnabled);
+      const savedEnabled = res.sendEnabled ?? nextEnabled;
+      const updated = { ...editUser, sendEnabled: savedEnabled };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      onRefresh();
     } catch (err) {
-      // Older API deployments may not have the dedicated route yet.
-      try {
-        const res = await authApi.updateCardDetails(editUser.email, { sendEnabled: nextEnabled });
-        savedEnabled = res.sendEnabled ?? nextEnabled;
-      } catch (fallbackError) {
-        // Keep the control usable when this frontend is connected to an older API.
-        console.warn('Backend send toggle unavailable; using local setting:', fallbackError);
-      }
+      console.error('Failed to toggle send:', err);
+      alert('Failed to update Send: ' + err.message);
     }
-
-    saveUserSendEnabled(editUser.email, savedEnabled);
-    const updated = { ...editUser, sendEnabled: savedEnabled };
-    setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
-    setEditUser(updated);
-    onRefresh();
   }
   async function handleToggleStatus() {
     if (!editUser) return;
