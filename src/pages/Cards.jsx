@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import AppLayout from '../components/AppLayout.jsx';
+import SupportTicketDrawer from '../components/SupportTicketDrawer.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 function DetailCard({ label, value, sub, icon, color }) {
@@ -29,6 +31,101 @@ function DetailCard({ label, value, sub, icon, color }) {
   );
 }
 
+function PhysicalCardOrderModal({ open, onClose, onMessageSupport, user }) {
+  const [form, setForm] = useState({
+    fullName: user?.fullName || user?.cardHolderName || '',
+    email: user?.email || '',
+    mailingAddress: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!open) return null;
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('https://formspree.io/f/mdegnnpa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _subject: 'Physical card order request - $50.99',
+          orderType: 'Physical card',
+          price: '$50.99',
+          ...form,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Unable to submit the order request.');
+      setSubmitted(true);
+    } catch (submitError) {
+      setError(submitError.message || 'Unable to submit the order request. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" aria-label="Close order form" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6 shadow-2xl" style={{ background: '#0D1F35', border: '1px solid rgba(6,182,212,0.2)' }}>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-400">Physical card</p>
+            <h2 className="mt-1 font-display text-2xl font-bold text-white">Order your card</h2>
+            <p className="mt-2 text-sm text-slate-400">Card order price: <span className="font-semibold text-white">$50.99</span></p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Close">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {submitted ? (
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+              <p className="font-semibold text-emerald-300">Order request submitted</p>
+              <p className="mt-1 text-sm text-emerald-200/80">Please message support for payment and delivery follow-up details.</p>
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-slate-200 hover:bg-white/15">Close</button>
+              <button type="button" onClick={onMessageSupport} className="flex-1 rounded-xl bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400">Message support</button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="card-order-full-name" className="mb-2 block text-xs font-semibold text-slate-300">Full name</label>
+              <input id="card-order-full-name" name="fullName" value={form.fullName} onChange={handleChange} required autoComplete="name" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-cyan-400/60" placeholder="Your full name" />
+            </div>
+            <div>
+              <label htmlFor="card-order-email" className="mb-2 block text-xs font-semibold text-slate-300">Email address</label>
+              <input id="card-order-email" type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-cyan-400/60" placeholder="you@example.com" />
+            </div>
+            <div>
+              <label htmlFor="card-order-mailing-address" className="mb-2 block text-xs font-semibold text-slate-300">Mailing address</label>
+              <textarea id="card-order-mailing-address" name="mailingAddress" value={form.mailingAddress} onChange={handleChange} required autoComplete="street-address" rows="4" className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-cyan-400/60" placeholder="Street, city, state, ZIP/postal code, country" />
+            </div>
+            {error && <p className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-300">{error}</p>}
+            <p className="text-xs text-slate-500">After submitting, message support for payment and delivery follow-up details.</p>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-slate-200 hover:bg-white/15">Cancel</button>
+              <button type="submit" disabled={loading} className="flex-1 rounded-xl bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Submitting...' : 'Submit order request'}</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
 export default function CardsPage() {
   const { user } = useAuth();
   const cardLocked = user?.isCardLocked || false;
@@ -39,6 +136,8 @@ export default function CardsPage() {
   const cardType       = user?.cardType    || 'Platinum';
   const spendLimit     = user?.spendLimit  || '$8,500';
   const rewards        = user?.rewards     || '4,820 pts';
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   return (
     <AppLayout title="Cards">
@@ -180,6 +279,14 @@ export default function CardsPage() {
             </div>
           </div>
 
+          {/* Physical card order */}
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between" style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)' }}>
+            <div>
+              <p className="text-sm font-semibold text-cyan-300">Need a physical card?</p>
+              <p className="mt-1 text-sm text-slate-400">Order a physical card for <span className="font-semibold text-white">$50.99</span>. We will collect your delivery details and support will follow up.</p>
+            </div>
+            <button type="button" onClick={() => setOrderOpen(true)} className="flex-shrink-0 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">Order now</button>
+          </div>
           {/* Detail cards */}
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <DetailCard
@@ -223,7 +330,16 @@ export default function CardsPage() {
             </div>
           </div>
         </div>
-      </div>
+      <PhysicalCardOrderModal
+        open={orderOpen}
+        user={user}
+        onClose={() => setOrderOpen(false)}
+        onMessageSupport={() => {
+          setOrderOpen(false);
+          setSupportOpen(true);
+        }}
+      />
+      <SupportTicketDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />      </div>
     </AppLayout>
   );
 }
