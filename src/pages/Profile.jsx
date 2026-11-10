@@ -87,9 +87,9 @@ export default function ProfilePage() {
                 {initials}
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: '#475569' }}>Personal profile</p>
-                <h2 className="font-display text-2xl font-bold" style={{ color: '#F1F5F9' }}>{displayName}</h2>
-                <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
+                <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Personal profile</p>
+                <h2 className="font-display text-2xl font-bold" style={{ color: 'var(--text-1)' }}>{displayName}</h2>
+                <p className="mt-1 text-sm" style={{ color: 'var(--text-2)' }}>
                   Your profile details are securely managed and synced across your accounts.
                 </p>
               </div>
@@ -105,8 +105,8 @@ export default function ProfilePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="font-semibold leading-tight" style={{ color: '#10B981' }}>KYC Verified</p>
-                  <p className="text-xs" style={{ color: '#64748B' }}>Identity confirmed</p>
+                  <p className="font-semibold leading-tight" style={{ color: 'var(--success)' }}>KYC Verified</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Identity confirmed</p>
                 </div>
               </div>
 
@@ -115,7 +115,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => setEditing(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all hover-lift"
-                  style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', color: '#06B6D4' }}
+                  style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--accent)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(6,182,212,0.18)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(6,182,212,0.1)'}
                 >
@@ -133,7 +133,7 @@ export default function ProfilePage() {
           {saved && (
             <div
               className="mt-4 flex items-center gap-2 px-4 py-3 rounded-2xl text-sm animate-fadeInDown"
-              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10B981' }}
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: 'var(--success)' }}
             >
               <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -165,16 +165,16 @@ export default function ProfilePage() {
                   {!item.editable && (
                     <span
                       className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-                      style={{ background: 'rgba(100,116,139,0.15)', color: '#64748B' }}
+                      style={{ background: 'rgba(100,116,139,0.15)', color: 'var(--text-muted)' }}
                     >
                       system
                     </span>
                   )}
-                  <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: '#475569' }}>{item.label}</p>
-                  <p className="mt-2 font-display text-lg font-semibold" style={{ color: '#F1F5F9' }}>
+                  <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>{item.label}</p>
+                  <p className="mt-2 font-display text-lg font-semibold" style={{ color: 'var(--text-1)' }}>
                     {item.value}
                   </p>
-                  <p className="mt-1 text-xs" style={{ color: '#64748B' }}>{item.note}</p>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>{item.note}</p>
                 </div>
               ))}
             </div>

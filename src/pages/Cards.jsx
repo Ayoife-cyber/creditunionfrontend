@@ -283,7 +283,7 @@ export default function CardsPage() {
           <div className="mt-6 flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between" style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)' }}>
             <div>
               <p className="text-sm font-semibold text-cyan-300">Need a physical card?</p>
-              <p className="mt-1 text-sm text-slate-400">Order a physical card for <span className="font-semibold text-white">$50.99</span>. We will collect your delivery details and support will follow up.</p>
+              <p className="mt-1 text-sm text-slate-400">Order a physical card for <span className="font-semibold text-slate-900">$50.99</span>. We will collect your delivery details and support will follow up.</p>
             </div>
             <button type="button" onClick={() => setOrderOpen(true)} className="flex-shrink-0 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">Order now</button>
           </div>

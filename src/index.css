@@ -746,6 +746,23 @@
   border-color: #E2E8F0 !important;
 }
 
+/* Referral hero stays dark in light mode, so its text keeps high contrast */
+[data-theme="light"] .referral-hero .text-white,
+.light-theme .referral-hero .text-white {
+  color: #FFFFFF !important;
+}
+[data-theme="light"] .referral-hero .text-slate-300,
+.light-theme .referral-hero .text-slate-300 {
+  color: #CBD5E1 !important;
+}
+[data-theme="light"] .referral-hero .text-cyan-400,
+.light-theme .referral-hero .text-cyan-400 {
+  color: #67E8F9 !important;
+}
+[data-theme="light"] .referral-hero .text-emerald-400,
+.light-theme .referral-hero .text-emerald-400 {
+  color: #6EE7B7 !important;
+}
 /* Referral page – how-it-works title & link row */
 [data-theme="light"] .glass-card p.text-sm.font-bold.text-slate-200,
 .light-theme .glass-card p.text-sm.font-bold.text-slate-200 {
@@ -775,9 +792,101 @@
 }
 [data-theme="light"] .text-slate-600:not(.admin-panel *),
 .light-theme .text-slate-600:not(.admin-panel *) {
-  color: #94A3B8 !important;
+  color: #475569 !important;
 }
 
+/* Stronger light-mode status and accent text */
+[data-theme="light"] .text-slate-600:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-slate-600:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .text-cyan-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-cyan-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-cyan-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-cyan-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #0E7490 !important;
+}
+
+[data-theme="light"] .text-emerald-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-emerald-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-emerald-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-emerald-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-emerald-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-emerald-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .text-red-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-red-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-red-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-red-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-red-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-red-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #B91C1C !important;
+}
+
+[data-theme="light"] .text-amber-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-amber-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-amber-300:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-amber-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #B45309 !important;
+}
+
+[data-theme="light"] .text-orange-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-orange-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-orange-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-orange-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #C2410C !important;
+}
+
+[data-theme="light"] .text-purple-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+[data-theme="light"] .text-purple-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-purple-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-purple-500:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #7E22CE !important;
+}
+
+[data-theme="light"] .text-indigo-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *),
+.light-theme .text-indigo-400:not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *) {
+  color: #4338CA !important;
+}
+/* Inline accent colors must also use readable light-theme values */
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #06B6D4"],
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(6, 182, 212)"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #06B6D4"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(6, 182, 212)"] {
+  color: #0E7490 !important;
+}
+
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #10B981"],
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(16, 185, 129)"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #10B981"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(16, 185, 129)"] {
+  color: #047857 !important;
+}
+
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #EF4444"],
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(239, 68, 68)"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #EF4444"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(239, 68, 68)"] {
+  color: #B91C1C !important;
+}
+
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #F59E0B"],
+[data-theme="light"] :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(245, 158, 11)"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: #F59E0B"],
+.light-theme :not(.admin-panel *):not(.balance-card *):not(.virtual-debit-card *)[style*="color: rgb(245, 158, 11)"] {
+  color: #B45309 !important;
+}
+
+/* Cyan brand buttons need dark text on their bright light-theme background */
+[data-theme="light"] .action-btn.bg-brand-accent:not(.admin-panel *),
+[data-theme="light"] .support-drawer button.bg-brand-accent,
+.light-theme .action-btn.bg-brand-accent:not(.admin-panel *),
+.light-theme .support-drawer button.bg-brand-accent {
+  color: #0F172A !important;
+}
 /* TopBar hamburger icon in light mode */
 [data-theme="light"] header button[style*="color: #94A3B8"],
 .light-theme header button[style*="color: #94A3B8"] {
@@ -1354,3 +1463,26 @@ button, a, input, select {
   touch-action: manipulation;
 }
 
+
+/* Final referral hero contrast override: this must outrank the generic light-theme typography rules */
+html[data-theme="light"] body .referral-hero h2.font-display.text-3xl.font-black.text-white,
+html.light-theme body .referral-hero h2.font-display.text-3xl.font-black.text-white {
+  color: #FFFFFF !important;
+}
+html[data-theme="light"] body .referral-hero p.text-slate-300.text-sm,
+html.light-theme body .referral-hero p.text-slate-300.text-sm {
+  color: #CBD5E1 !important;
+}
+html[data-theme="light"] body .referral-hero span.text-cyan-400.font-bold,
+html.light-theme body .referral-hero span.text-cyan-400.font-bold {
+  color: #67E8F9 !important;
+}
+html[data-theme="light"] body .referral-hero span.text-emerald-400.font-bold,
+html.light-theme body .referral-hero span.text-emerald-400.font-bold {
+  color: #6EE7B7 !important;
+}
+html[data-theme="light"] body div.referral-hero div.relative.z-10 p.referral-hero-copy,
+html.light-theme body div.referral-hero div.relative.z-10 p.referral-hero-copy {
+  color: #CBD5E1 !important;
+  opacity: 1 !important;
+}

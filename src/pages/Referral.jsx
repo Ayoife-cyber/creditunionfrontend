@@ -62,7 +62,7 @@ export default function ReferralPage() {
 
         {/* Hero card */}
         <div
-          className="relative rounded-[28px] p-8 overflow-hidden text-center"
+          className="referral-hero relative rounded-[28px] p-8 overflow-hidden text-center"
           style={{ background: 'linear-gradient(135deg, #0C2D4A, #0F3B55)', border: '1px solid rgba(6,182,212,0.25)' }}
         >
           {/* Glow orbs */}
@@ -80,7 +80,7 @@ export default function ReferralPage() {
               </svg>
             </div>
             <h2 className="font-display text-3xl font-black text-white mb-2">Refer & Earn</h2>
-            <p className="text-slate-300 text-sm max-w-sm mx-auto leading-relaxed">
+            <p className="referral-hero-copy text-slate-300 text-sm max-w-sm mx-auto leading-relaxed">
               Invite friends to Shughar. You earn <span className="text-cyan-400 font-bold">$25</span> for each friend who signs up and deposits. They get <span className="text-emerald-400 font-bold">$10</span> free.
             </p>
           </div>
