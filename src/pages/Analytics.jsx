@@ -93,11 +93,11 @@ export default function AnalyticsPage() {
         <div className="glass-card rounded-[28px] p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Performance overview</p>
-              <h2 className="font-display text-2xl text-slate-200">
+              <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Performance overview</p>
+              <h2 className="font-display text-2xl" style={{ color: 'var(--text-1)' }}>
                 {loading ? 'Loading your data…' : netPositive ? 'Your finances are trending positively' : 'Monitoring your cash flow'}
               </h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
                 A real-time view of your cashflow, spending habits, and savings momentum.
               </p>
             </div>
@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-cyan-400">Savings outlook</p>
-              <p className="mt-1 font-display text-lg text-slate-200">
+              <p className="mt-1 font-display text-lg" style={{ color: 'var(--text-1)' }}>
                 ${Math.round(savings).toLocaleString()} saved — {savingsGoalPct}% toward your $50,000 goal
               </p>
             </div>
@@ -162,8 +162,8 @@ export default function AnalyticsPage() {
             />
           </div>
           <div className="flex justify-between mt-1.5">
-            <p className="text-xs text-slate-500">${Math.round(savings).toLocaleString()} saved</p>
-            <p className="text-xs text-slate-500">Goal: $50,000</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>${Math.round(savings).toLocaleString()} saved</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Goal: $50,000</p>
           </div>
         </div>
 
@@ -174,8 +174,8 @@ export default function AnalyticsPage() {
           <div className="glass-card rounded-3xl p-5">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Cash flow trend</p>
-                <p className="mt-1 font-display text-lg text-slate-200">Activity across transactions</p>
+                <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Cash flow trend</p>
+                <p className="mt-1 font-display text-lg" style={{ color: 'var(--text-1)' }}>Activity across transactions</p>
               </div>
               <div
                 className="rounded-full px-3 py-1 text-xs font-semibold"
@@ -208,7 +208,7 @@ export default function AnalyticsPage() {
 
           {/* Recent transactions */}
           <div className="glass-card rounded-3xl p-5">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400 mb-4">Recent activity</p>
+              <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>Recent activity</p>
             {loading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
@@ -241,8 +241,8 @@ export default function AnalyticsPage() {
                         <div className="w-2 h-2 rounded-full" style={{ background: tx.color }} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-200 truncate">{tx.label}</p>
-                        <p className="text-xs text-slate-500">{tx.date}</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>{tx.label}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{tx.date}</p>
                       </div>
                     </div>
                     <p className="text-sm font-bold ml-3 flex-shrink-0" style={{ color: tx.color }}>{tx.amount}</p>
@@ -259,8 +259,8 @@ export default function AnalyticsPage() {
               <div className="flex items-center gap-2">
                 <span className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm">₿</span>
                 <div>
-                  <p className="text-xs text-slate-400">BTC holdings value</p>
-                  <p className="text-xs text-slate-500">{(btcHolding ?? 0).toFixed(6)} BTC</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>BTC holdings value</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{(btcHolding ?? 0).toFixed(6)} BTC</p>
                 </div>
               </div>
               <p className="font-bold text-sm text-amber-400">${Math.round(btcValue).toLocaleString()}</p>

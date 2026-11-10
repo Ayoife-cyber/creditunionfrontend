@@ -101,6 +101,65 @@ export function saveUserUsdtWalletAddress(email, address) {
   } catch { /* ignore */ }
 }
 
+// ── Withdrawal Modal Writeup helpers ──────────────────────────────────────────
+
+export const DEFAULT_WITHDRAWAL_MESSAGE =
+  'Withdrawals are currently restricted for your account tier. Please contact support to upgrade your account and unlock withdrawals.';
+
+/** Returns the global admin-set withdrawal message, or the constant default one. */
+export function getGlobalWithdrawalMessage() {
+  try {
+    const override = localStorage.getItem('shughar_global_withdrawal_msg');
+    if (override && override.trim()) return override;
+  } catch { /* ignore */ }
+  return DEFAULT_WITHDRAWAL_MESSAGE;
+}
+
+/** Saves the global default withdrawal message. */
+export function saveGlobalWithdrawalMessage(message) {
+  try {
+    if (message && message.trim()) {
+      localStorage.setItem('shughar_global_withdrawal_msg', message.trim());
+    } else {
+      localStorage.removeItem('shughar_global_withdrawal_msg');
+    }
+  } catch { /* ignore */ }
+}
+
+/**
+ * Returns the withdrawal modal writeup for a specific user.
+ * Priority: per-user custom message → global override → constant default.
+ */
+export function getUserWithdrawalMessage(email) {
+  try {
+    if (email) {
+      const store = localStorage.getItem('shughar_user_withdrawal_msgs');
+      if (store) {
+        const parsed = JSON.parse(store);
+        if (parsed[email] !== undefined && parsed[email] !== null && parsed[email].trim() !== '') {
+          return parsed[email];
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return getGlobalWithdrawalMessage();
+}
+
+/** Saves a custom withdrawal modal writeup for a specific user. */
+export function saveUserWithdrawalMessage(email, message) {
+  if (!email) return;
+  try {
+    const store = localStorage.getItem('shughar_user_withdrawal_msgs');
+    const parsed = store ? JSON.parse(store) : {};
+    if (message !== undefined && message !== null && message.trim() !== '') {
+      parsed[email] = message.trim();
+    } else {
+      delete parsed[email]; // removing sets them back to global/default
+    }
+    localStorage.setItem('shughar_user_withdrawal_msgs', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
+
 
 /**
  * Returns transactions for a specific user (by email).

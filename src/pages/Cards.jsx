@@ -118,7 +118,7 @@ export default function CardsPage() {
                 backgroundSize: '20px 20px',
               }} />
 
-              <div className="relative h-full flex flex-col justify-between p-6 sm:p-8">
+              <div className="relative h-full flex flex-col justify-between p-4 sm:p-6 lg:p-8">
                 {/* Top row */}
                 <div className="flex items-start justify-between">
                   <div>
@@ -132,8 +132,8 @@ export default function CardsPage() {
                 </div>
 
                 {/* Chip + Contactless */}
-                <div className="flex items-center gap-3 -mt-2">
-                  <svg viewBox="0 0 50 40" className="w-11 h-9 sm:w-14 sm:h-11 drop-shadow-lg" fill="none">
+                <div className="flex items-center gap-2 sm:gap-3 -mt-1 sm:-mt-2">
+                  <svg viewBox="0 0 50 40" className="w-9 h-7 sm:w-12 sm:h-10 drop-shadow-lg" fill="none">
                     <rect x="1" y="1" width="48" height="38" rx="5" fill="#C9A84C" stroke="#A0832A" strokeWidth="1"/>
                     <rect x="6" y="6" width="14" height="12" rx="2" fill="#D4B65A" stroke="#A0832A" strokeWidth="0.5"/>
                     <rect x="24" y="6" width="20" height="12" rx="2" fill="#D4B65A" stroke="#A0832A" strokeWidth="0.5"/>
@@ -142,7 +142,7 @@ export default function CardsPage() {
                     <line x1="20" y1="6" x2="20" y2="34" stroke="#A0832A" strokeWidth="0.5"/>
                     <line x1="6" y1="20" x2="44" y2="20" stroke="#A0832A" strokeWidth="0.5"/>
                   </svg>
-                  <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 text-white/50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                     <path d="M8.5 16.5a6 6 0 010-9"/>
                     <path d="M12 18a9 9 0 010-12"/>
                     <path d="M5 15a3 3 0 010-6"/>
@@ -150,7 +150,7 @@ export default function CardsPage() {
                 </div>
 
                 {/* Card number */}
-                <p className="font-display text-xl sm:text-2xl tracking-[0.3em] text-white/90 font-medium"
+                <p className="font-display text-base sm:text-xl lg:text-2xl tracking-[0.18em] sm:tracking-[0.3em] text-white/90 font-medium"
                   style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)', fontVariantNumeric: 'tabular-nums' }}>
                   {cardNumber}
                 </p>

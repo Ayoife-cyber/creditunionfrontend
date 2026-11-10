@@ -1,4 +1,4 @@
-﻿const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const ADMIN_TOKEN_KEY = 'shughar_admin_token';
 
@@ -33,6 +33,7 @@ export const authApi = {
   toggleCardLock: (email) => request(`/auth/users/${encodeURIComponent(email)}/toggle-card-lock`, { method: 'PUT' }),
   updateBalance: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/balance`, { method: 'PUT', body: payload }),
   updateCardDetails: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/card-details`, { method: 'PUT', body: payload }),
+  updateWithdrawalMessage: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/withdrawal-message`, { method: 'PUT', body: payload }),
   getUsers: () => request('/auth/users'),
   deleteUser: (email) => request(`/auth/users/${encodeURIComponent(email)}`, { method: 'DELETE' }),
   toggleUserStatus: (email) => request(`/auth/users/${encodeURIComponent(email)}/status`, { method: 'PUT' }),

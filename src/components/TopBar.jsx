@@ -112,7 +112,7 @@ export default function TopBar({
         {panelOpen && (
           <div
             ref={panelRef}
-            className="notif-panel-open absolute right-0 top-14 w-80 rounded-2xl z-50 overflow-hidden"
+            className="notif-panel-open absolute right-0 top-14 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl z-50 overflow-hidden"
             style={{
               background: '#0D1F35',
               border: '1px solid rgba(6,182,212,0.2)',

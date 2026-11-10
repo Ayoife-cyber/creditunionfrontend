@@ -59,10 +59,10 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, usdtHolding,
   ];
 
   return (
-    <div className="xl:col-span-2 text-white rounded-2xl lg:rounded-3xl p-6 lg:p-8 relative overflow-hidden"
+    <div className="balance-card xl:col-span-2 text-white rounded-2xl lg:rounded-3xl p-5 sm:p-6 lg:p-8 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.6) 100%)',
-        border: '1px solid rgba(148,163,184,0.1)',
+        background: 'linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%)',
+        border: '1px solid rgba(148,163,184,0.18)',
         backdropFilter: 'blur(10px)',
       }}>
       
@@ -90,8 +90,8 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, usdtHolding,
           {/* USD Cash Balance */}
           <div>
             <p className="text-slate-400 text-xs uppercase tracking-wide font-semibold mb-2">Total Fiat Balance</p>
-            <div className="flex items-end gap-2 sm:gap-4">
-              <span className="font-display font-extrabold text-5xl lg:text-6xl balance-display balance-font tracking-tight">
+            <div className="flex items-end gap-2 sm:gap-4 flex-wrap">
+              <span className="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl balance-display balance-font tracking-tight break-words">
                 ${(balanceUsd ?? 0).toLocaleString()}
               </span>
               <button
@@ -198,7 +198,7 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, usdtHolding,
             {/* Top Up Button */}
             <button
               onClick={onTopUp}
-              className="group relative overflow-hidden rounded-xl lg:rounded-2xl p-3 lg:p-4 transition-all duration-300 hover:scale-105 col-span-1 sm:col-span-1"
+              className="group relative overflow-hidden rounded-xl lg:rounded-2xl p-3 lg:p-4 transition-all duration-300 hover:scale-105 col-span-2 sm:col-span-1"
               style={{
                 background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(10,134,95,0.1) 100%)',
                 border: '1px solid rgba(16,185,129,0.3)',

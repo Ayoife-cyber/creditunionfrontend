@@ -78,11 +78,11 @@ export default function StatsGrid({ btcHolding = 0, balanceUsd = 0 }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={s.icon} />
               </svg>
             </span>
-            <span className="text-xs text-slate-400 font-medium">{s.label}</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{s.label}</span>
           </div>
-          <p className="font-display font-bold text-lg text-slate-100">{s.value}</p>
+          <p className="font-display font-bold text-lg" style={{ color: 'var(--text-1)' }}>{s.value}</p>
           <p className={`text-xs font-medium mt-0.5 ${s.trendColor}`}>{s.trend}</p>
-          <div className="mt-3 h-2 rounded-full bg-slate-800">
+          <div className="mt-3 h-2 rounded-full" style={{ background: 'var(--surface-mid)' }}>
             <div className={`h-2 rounded-full ${s.progressBar}`} style={{ width: `${Math.min(s.progress, 100)}%` }} />
           </div>
         </div>

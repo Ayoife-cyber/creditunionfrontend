@@ -108,7 +108,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
       {/* Modal */}
       <div
         ref={receiptRef}
-        className="relative z-10 w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl animate-slideInUp"
+        className="modal-card relative z-10 w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl animate-slideInUp max-h-[90vh] overflow-y-auto"
         style={{ background: '#0D1F35', border: '1px solid rgba(6,182,212,0.2)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}
       >
         {/* Handle (mobile) */}

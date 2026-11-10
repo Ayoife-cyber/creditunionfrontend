@@ -75,7 +75,7 @@ export default function AccountColumn({ accountNumber, status, onTopUp, onHistor
             </span>
           )}
         </div>
-        <p className="font-display font-bold text-xl text-slate-100 tracking-widest mb-4">
+        <p className="font-display font-bold text-xl tracking-widest mb-4" style={{ color: 'var(--text-1)' }}>
           {accountNumber || '—'}
         </p>
         <div className="flex gap-2">
@@ -87,7 +87,8 @@ export default function AccountColumn({ accountNumber, status, onTopUp, onHistor
           </button>
           <button
             onClick={onHistory}
-            className="action-btn flex-1 text-xs font-semibold bg-slate-700/60 text-slate-300 rounded-xl py-2.5 hover:bg-slate-700 transition-all border border-white/5"
+            className="action-btn flex-1 text-xs font-semibold rounded-xl py-2.5 transition-all border"
+            style={{ background: 'var(--surface-high)', color: 'var(--text-2)', borderColor: 'var(--border)' }}
           >
             History
           </button>
@@ -101,7 +102,7 @@ export default function AccountColumn({ accountNumber, status, onTopUp, onHistor
             <span className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-sm">
               ₿
             </span>
-            <span className="text-sm font-semibold text-slate-300">Bitcoin</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-2)' }}>Bitcoin</span>
           </div>
           <div className="flex items-center gap-1.5">
             {btcLive && (
@@ -120,8 +121,8 @@ export default function AccountColumn({ accountNumber, status, onTopUp, onHistor
             </span>
           </div>
         </div>
-        <p className="font-display font-bold text-2xl text-slate-100">${Number(btcPrice).toLocaleString()}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{btcLive ? 'Live BTC/USD · CoinGecko' : 'BTC/USD rate'}</p>
+        <p className="font-display font-bold text-2xl" style={{ color: 'var(--text-1)' }}>${Number(btcPrice).toLocaleString()}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{btcLive ? 'Live BTC/USD · CoinGecko' : 'BTC/USD rate'}</p>
       </div>
 
       {/* USDT Price Card */}
@@ -132,7 +133,7 @@ export default function AccountColumn({ accountNumber, status, onTopUp, onHistor
               style={{ background: 'rgba(38,161,123,0.1)', border: '1px solid rgba(38,161,123,0.25)', color: '#26A17B' }}>
               ₮
             </span>
-            <span className="text-sm font-semibold text-slate-300">Tether</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-2)' }}>Tether</span>
           </div>
           <div className="flex items-center gap-1.5">
             {usdtLive && (
@@ -151,8 +152,8 @@ export default function AccountColumn({ accountNumber, status, onTopUp, onHistor
             </span>
           </div>
         </div>
-        <p className="font-display font-bold text-2xl text-slate-100">${Number(usdtPrice).toFixed(4)}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{usdtLive ? 'Live USDT/USD · CoinGecko' : 'USDT/USD rate'}</p>
+        <p className="font-display font-bold text-2xl" style={{ color: 'var(--text-1)' }}>${Number(usdtPrice).toFixed(4)}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{usdtLive ? 'Live USDT/USD · CoinGecko' : 'USDT/USD rate'}</p>
       </div>
 
     </div>

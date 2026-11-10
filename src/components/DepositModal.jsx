@@ -53,7 +53,7 @@ export default function DepositModal({ open, onClose, onCopy, userEmail }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#0F172A]/80 backdrop-blur-md" onClick={onClose} />
-      <div className="modal-card relative bg-[#1E293B] rounded-3xl p-6 w-full max-w-sm shadow-2xl z-10 border border-white/10">
+      <div className="modal-card relative bg-[#1E293B] rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl z-10 border border-white/10">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">

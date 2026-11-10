@@ -38,8 +38,8 @@ export default function AppLayout({ title, children, onSidebarAction }) {
   const resolvedSpecialAction = onSidebarAction || defaultSidebarAction;
 
   return (
-    <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--bg)', color: 'var(--text-1)' }}>
-      <div className="flex min-h-screen">
+    <div className="min-h-screen min-h-[100dvh] font-body overflow-x-hidden" style={{ backgroundColor: 'var(--bg)', color: 'var(--text-1)' }}>
+      <div className="flex min-h-screen min-h-[100dvh]">
         <Sidebar
           activeSection={activeSection}
           onNavigate={handleNavigate}
@@ -47,7 +47,7 @@ export default function AppLayout({ title, children, onSidebarAction }) {
           user={user}
           onSpecialAction={resolvedSpecialAction}
         />
-        <main className="flex-1 min-w-0 lg:ml-72 pb-6 lg:pb-0">
+        <main className="flex-1 min-w-0 lg:ml-72 pb-6 lg:pb-0 overflow-x-hidden">
           <TopBar
             title={title}
             user={user}

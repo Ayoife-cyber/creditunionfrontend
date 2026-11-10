@@ -25,7 +25,7 @@ function BalanceSkeleton() {
         <Box className="h-10 w-48 rounded-md" />
         <Box className="h-6 w-36 rounded-md" />
       </div>
-      <div className="relative z-10 grid grid-cols-4 gap-3">
+      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[...Array(4)].map((_, i) => (
           <Box key={i} className="h-16 rounded-2xl" />
         ))}

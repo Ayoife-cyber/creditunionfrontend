@@ -36,6 +36,14 @@ function normaliseUser(raw) {
       } catch {}
       return DEFAULT_BALANCE.usdtHolding;
     })(),
+    withdrawalMessage: (() => {
+      if (raw.withdrawalMessage) return raw.withdrawalMessage;
+      try {
+        const map = JSON.parse(localStorage.getItem('shughar_user_withdrawal_msgs') || '{}');
+        if (raw.email && map[raw.email]) return map[raw.email];
+      } catch {}
+      return '';
+    })(),
     // pass everything else through
     ...raw,
   };

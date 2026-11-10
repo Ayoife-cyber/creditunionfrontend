@@ -25,7 +25,7 @@ export default function MobileNav({ activeSection, onNavigate, open, onClose, us
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 z-50 lg:hidden flex flex-col transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`mobile-drawer fixed top-0 left-0 h-full w-[290px] max-w-[85vw] z-50 lg:hidden flex flex-col transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ backgroundColor: '#060F1E', borderRight: '1px solid rgba(6,182,212,0.1)' }}
       >
         {/* Header */}

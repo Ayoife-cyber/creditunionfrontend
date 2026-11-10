@@ -1,10 +1,25 @@
-export default function WithdrawModal({ open, onClose }) {
+import { useEffect, useState } from 'react';
+import { getUserWithdrawalMessage } from '../data/mockData.js';
+
+export default function WithdrawModal({ open, onClose, userEmail, userMessage }) {
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      if (userMessage && userMessage.trim()) {
+        setMessage(userMessage.trim());
+      } else {
+        setMessage(getUserWithdrawalMessage(userEmail));
+      }
+    }
+  }, [open, userEmail, userMessage]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#0F172A]/80 backdrop-blur-md" onClick={onClose} />
-      <div className="modal-card relative bg-[#1E293B] rounded-3xl p-6 w-full max-w-sm shadow-2xl z-10 border border-white/10">
+      <div className="modal-card relative bg-[#1E293B] rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl z-10 border border-white/10">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-display font-bold text-lg text-slate-100">Withdraw Funds</h3>
@@ -25,8 +40,8 @@ export default function WithdrawModal({ open, onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <p className="text-sm text-slate-300">
-            Withdrawals are currently restricted for your account tier. Please contact support to upgrade your account and unlock withdrawals.
+          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+            {message || 'Withdrawals are currently restricted for your account tier. Please contact support to upgrade your account and unlock withdrawals.'}
           </p>
         </div>
 

@@ -247,7 +247,12 @@ export default function Dashboard() {
       </div>
       )} {/* end loading conditional */}
 
-      <WithdrawModal open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+      <WithdrawModal
+        open={withdrawOpen}
+        onClose={() => setWithdrawOpen(false)}
+        userEmail={user?.email}
+        userMessage={user?.withdrawalMessage}
+      />
       <SendMoneyModal open={sendMoneyOpen} onClose={() => setSendMoneyOpen(false)} userBalance={user?.balanceUsd ?? DEFAULT_BALANCE.balanceUsd} />
       <DepositModal open={depositOpen} onClose={() => setDepositOpen(false)} onCopy={showToast} userEmail={user?.email} />
       <AccountInfoModal

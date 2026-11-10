@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWalletAddress, getUserWalletAddress, saveUserWalletAddress, getUsdtWalletAddress, getUserUsdtWalletAddress, saveUserUsdtWalletAddress } from '../data/mockData.js';
+import { 
+  getWalletAddress, 
+  getUserWalletAddress, 
+  saveUserWalletAddress, 
+  getUsdtWalletAddress, 
+  getUserUsdtWalletAddress, 
+  saveUserUsdtWalletAddress,
+  getGlobalWithdrawalMessage,
+  saveGlobalWithdrawalMessage,
+  getUserWithdrawalMessage,
+  saveUserWithdrawalMessage,
+  DEFAULT_WITHDRAWAL_MESSAGE,
+} from '../data/mockData.js';
 import { authApi } from '../api/client.js';
 
 // -- Helpers ----------------------------------------------------------------
@@ -163,6 +175,9 @@ function UsersTab({ onRefresh }) {
   // per-user USDT wallet
   const [usdtWalletAddr, setUsdtWalletAddr] = useState('');
   const [usdtWalletSaved, setUsdtWalletSaved] = useState(false);
+  // per-user withdrawal writeup
+  const [withdrawalMsg, setWithdrawalMsg] = useState('');
+  const [withdrawalMsgSaved, setWithdrawalMsgSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const reload = useCallback(async () => { 
@@ -204,6 +219,12 @@ function UsersTab({ onRefresh }) {
       const storeUsdt = rawUsdt ? JSON.parse(rawUsdt) : {};
       setUsdtWalletAddr(storeUsdt[editUser.email] || '');
       setUsdtWalletSaved(false);
+
+      // load this user's withdrawal message (empty string if using global/default)
+      const rawWithdrawal = localStorage.getItem('shughar_user_withdrawal_msgs');
+      const storeWithdrawal = rawWithdrawal ? JSON.parse(rawWithdrawal) : {};
+      setWithdrawalMsg(editUser.withdrawalMessage || storeWithdrawal[editUser.email] || '');
+      setWithdrawalMsgSaved(false);
     }
   }, [editUser]);
 
@@ -288,6 +309,43 @@ function UsersTab({ onRefresh }) {
     saveUserUsdtWalletAddress(editUser.email, ''); // removes override -> falls back to global
     setUsdtWalletAddr('');
     setUsdtWalletSaved(false);
+  }
+
+  async function handleSaveWithdrawalMsg() {
+    if (!editUser) return;
+    try {
+      saveUserWithdrawalMessage(editUser.email, withdrawalMsg);
+      await authApi.updateWithdrawalMessage(editUser.email, { withdrawalMessage: withdrawalMsg.trim() }).catch(err => {
+        console.warn('Backend updateWithdrawalMessage partial:', err);
+      });
+      const updated = { ...editUser, withdrawalMessage: withdrawalMsg.trim() };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setWithdrawalMsgSaved(true);
+      setTimeout(() => setWithdrawalMsgSaved(false), 2000);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to update withdrawal message:', err);
+      alert('Failed to update withdrawal message: ' + err.message);
+    }
+  }
+
+  async function handleClearWithdrawalMsg() {
+    if (!editUser) return;
+    try {
+      saveUserWithdrawalMessage(editUser.email, ''); // removes override -> falls back to global default
+      await authApi.updateWithdrawalMessage(editUser.email, { withdrawalMessage: '' }).catch(err => {
+        console.warn('Backend clear withdrawalMessage partial:', err);
+      });
+      const updated = { ...editUser, withdrawalMessage: '' };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setWithdrawalMsg('');
+      setWithdrawalMsgSaved(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to clear withdrawal message:', err);
+    }
   }
 
   async function handleToggleLock() {
@@ -688,6 +746,58 @@ function UsersTab({ onRefresh }) {
                 </button>
               </div>
             </div>
+
+            {/* Per-user Withdrawal Modal Writeup */}
+            <div className="rounded-xl p-5 mb-5" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.2)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold text-purple-400 bg-purple-400/10 border border-purple-400/20">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </span>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-purple-400">Withdrawal Modal Writeup</h4>
+                </div>
+                {withdrawalMsg ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(168,85,247,0.15)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.3)' }}>Custom writeup</span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(100,116,139,0.1)', color: '#64748b', border: '1px solid rgba(100,116,139,0.2)' }}>Using global default</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mb-3">
+                Custom writeup displayed when this user opens the "Withdraw Funds" modal. Leave blank to keep the constant global default.
+              </p>
+              <textarea
+                id={`withdrawal-msg-input-${editUser.email}`}
+                value={withdrawalMsg}
+                onChange={e => { setWithdrawalMsg(e.target.value); setWithdrawalMsgSaved(false); }}
+                rows={3}
+                placeholder={`Global default: "${getGlobalWithdrawalMessage()}"`}
+                className="w-full px-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all resize-y leading-relaxed"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(168,85,247,0.25)' }}
+                onFocus={e => e.target.style.borderColor = 'rgba(168,85,247,0.6)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(168,85,247,0.25)'}
+              />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={handleClearWithdrawalMsg}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 transition-all hover:text-white"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  Clear (use global)
+                </button>
+                <button
+                  id={`save-withdrawal-msg-btn-${editUser.email}`}
+                  onClick={handleSaveWithdrawalMsg}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5"
+                  style={{ background: withdrawalMsgSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #a855f7, #7e22ce)' }}>
+                  {withdrawalMsgSaved ? (
+                    <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved!</>
+                  ) : (
+                    'Save Withdrawal Writeup'
+                  )}
+                </button>
+              </div>
+            </div>
             
             {/* Delete Account */}
             <div className="mt-8 pt-5 border-t" style={{ borderColor: 'rgba(239,68,68,0.2)' }}>
@@ -925,6 +1035,29 @@ function SettingsTab() {
     setUsdtSaved(false);
   }
 
+  // ── Withdrawal Modal Writeup (Global Default for new signups) ──
+  const [globalWithdrawalMsg, setGlobalWithdrawalMsg] = useState(getGlobalWithdrawalMessage());
+  const [globalWithdrawalSaved, setGlobalWithdrawalSaved] = useState(false);
+  const [globalWithdrawalError, setGlobalWithdrawalError] = useState('');
+
+  function handleGlobalWithdrawalSave() {
+    if (!globalWithdrawalMsg.trim()) {
+      setGlobalWithdrawalError('Writeup cannot be empty.');
+      return;
+    }
+    saveGlobalWithdrawalMessage(globalWithdrawalMsg.trim());
+    setGlobalWithdrawalSaved(true);
+    setGlobalWithdrawalError('');
+    setTimeout(() => setGlobalWithdrawalSaved(false), 2500);
+  }
+
+  function handleGlobalWithdrawalReset() {
+    saveGlobalWithdrawalMessage('');
+    setGlobalWithdrawalMsg(DEFAULT_WITHDRAWAL_MESSAGE);
+    setGlobalWithdrawalSaved(false);
+    setGlobalWithdrawalError('');
+  }
+
   return (
     <div className="max-w-lg space-y-6">
 
@@ -1039,6 +1172,64 @@ function SettingsTab() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <p className="text-xs" style={{ color: 'rgba(38,161,123,0.7)' }}>Ensure this is an ERC-20 compatible address. Changes take effect immediately.</p>
+        </div>
+      </div>
+
+      {/* ── Global Withdrawal Modal Writeup Card ── */}
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(168,85,247,0.15)' }}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)', color: '#c084fc' }}>
+            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Global Withdrawal Modal Writeup</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Constant default writeup served to every new signup and user without a custom writeup</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#c084fc', opacity: 0.8 }}>Default Withdrawal Writeup</label>
+          <textarea
+            id="global-withdrawal-msg-input"
+            value={globalWithdrawalMsg}
+            onChange={e => { setGlobalWithdrawalMsg(e.target.value); setGlobalWithdrawalSaved(false); setGlobalWithdrawalError(''); }}
+            rows={3}
+            placeholder={DEFAULT_WITHDRAWAL_MESSAGE}
+            className="w-full px-4 py-3 rounded-xl text-sm text-slate-200 focus:outline-none transition-all resize-y leading-relaxed"
+            style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${globalWithdrawalError ? 'rgba(239,68,68,0.4)' : 'rgba(168,85,247,0.15)'}` }}
+            onFocus={e => e.target.style.borderColor = 'rgba(168,85,247,0.5)'}
+            onBlur={e => e.target.style.borderColor = globalWithdrawalError ? 'rgba(239,68,68,0.4)' : 'rgba(168,85,247,0.15)'}
+          />
+          {globalWithdrawalError && <p className="text-xs text-red-400 mt-1">{globalWithdrawalError}</p>}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleGlobalWithdrawalReset}
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 transition-all hover:text-white"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            Reset to Constant Default
+          </button>
+          <button
+            id="save-global-withdrawal-msg-btn"
+            onClick={handleGlobalWithdrawalSave}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+            style={{ background: globalWithdrawalSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #a855f7, #7e22ce)' }}>
+            {globalWithdrawalSaved ? (
+              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved!</>
+            ) : (
+              'Save Global Writeup'
+            )}
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)' }}>
+          <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#c084fc' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p className="text-xs" style={{ color: 'rgba(168,85,247,0.7)' }}>This message is constantly served to every new signup and user without a custom writeup.</p>
         </div>
       </div>
 
