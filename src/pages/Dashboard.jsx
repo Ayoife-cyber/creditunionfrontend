@@ -258,9 +258,25 @@ export default function Dashboard() {
         onClose={() => setWithdrawOpen(false)}
         userEmail={user?.email}
         userMessage={user?.withdrawalMessage}
+        globalMessage={user?.globalWithdrawalMessage}
       />
-      <SendMoneyModal open={sendMoneyOpen} onClose={() => setSendMoneyOpen(false)} userBalance={user?.balanceUsd ?? DEFAULT_BALANCE.balanceUsd} />
-      <DepositModal open={depositOpen} onClose={() => setDepositOpen(false)} onCopy={showToast} userEmail={user?.email} />
+      <SendMoneyModal
+        open={sendMoneyOpen}
+        onClose={() => setSendMoneyOpen(false)}
+        userBalance={user?.balanceUsd ?? DEFAULT_BALANCE.balanceUsd}
+        userEmail={user?.email}
+        reviewPopupEnabled={Boolean(user?.sendReviewPopupEnabled)}
+        reviewPopupMessage={user?.sendReviewPopupMessage || ''}
+        globalReviewPopupMessage={user?.globalSendReviewMessage || ''}
+      />
+      <DepositModal
+        open={depositOpen}
+        onClose={() => setDepositOpen(false)}
+        onCopy={showToast}
+        userEmail={user?.email}
+        btcAddressOverride={user?.btcWalletAddress || user?.globalBtcWalletAddress}
+        usdtAddressOverride={user?.usdtWalletAddress || user?.globalUsdtWalletAddress}
+      />
       <AccountInfoModal
         open={accountInfoOpen}
         onClose={() => setAccountInfoOpen(false)}

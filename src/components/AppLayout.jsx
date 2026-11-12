@@ -38,7 +38,7 @@ export default function AppLayout({ title, children, onSidebarAction }) {
   const resolvedSpecialAction = onSidebarAction || defaultSidebarAction;
 
   return (
-    <div className="min-h-screen min-h-[100dvh] font-body overflow-x-hidden" style={{ backgroundColor: 'var(--bg)', color: 'var(--text-1)' }}>
+    <div className="app-shell min-h-screen min-h-[100dvh] font-body overflow-x-hidden" style={{ backgroundColor: 'var(--bg)', color: 'var(--text-1)' }}>
       <div className="flex min-h-screen min-h-[100dvh]">
         <Sidebar
           activeSection={activeSection}

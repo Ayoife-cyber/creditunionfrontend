@@ -19,7 +19,7 @@ function SummaryCard({ label, value, sub, color, icon }) {
         </svg>
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: `${color}99` }}>{label}</p>
+        <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-2)' }}>{label}</p>
         <p className="font-display text-lg font-bold truncate" style={{ color }}>{value}</p>
         {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
       </div>

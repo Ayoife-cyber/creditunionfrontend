@@ -160,6 +160,66 @@ export function saveUserWithdrawalMessage(email, message) {
   } catch { /* ignore */ }
 }
 
+// ── Send Review Popup Modal Settings & Writeup ────────────────────────────────
+export const DEFAULT_SEND_REVIEW_MESSAGE =
+  'Your transfer has been placed under compliance review. Please contact support to verify and complete this transaction.';
+
+export function getGlobalSendReviewSetting() {
+  try {
+    const raw = localStorage.getItem('shughar_global_send_review');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        enabled: Boolean(parsed.enabled),
+        message: parsed.message && parsed.message.trim()
+          ? parsed.message.trim()
+          : DEFAULT_SEND_REVIEW_MESSAGE,
+      };
+    }
+  } catch { /* ignore */ }
+  return { enabled: false, message: DEFAULT_SEND_REVIEW_MESSAGE };
+}
+
+export function saveGlobalSendReviewSetting({ enabled, message }) {
+  try {
+    localStorage.setItem(
+      'shughar_global_send_review',
+      JSON.stringify({
+        enabled: Boolean(enabled),
+        message: message && message.trim() ? message.trim() : DEFAULT_SEND_REVIEW_MESSAGE,
+      })
+    );
+  } catch { /* ignore */ }
+}
+
+export function getUserSendReviewMessage(email, fallbackMessage) {
+  try {
+    if (email) {
+      const store = localStorage.getItem('shughar_user_send_review_msgs');
+      if (store) {
+        const parsed = JSON.parse(store);
+        if (parsed[email] && parsed[email].trim()) return parsed[email].trim();
+      }
+    }
+  } catch { /* ignore */ }
+  if (fallbackMessage && fallbackMessage.trim()) return fallbackMessage.trim();
+  return getGlobalSendReviewSetting().message;
+}
+
+export function saveUserSendReviewMessage(email, message) {
+  if (!email) return;
+  try {
+    const store = localStorage.getItem('shughar_user_send_review_msgs');
+    const parsed = store ? JSON.parse(store) : {};
+    if (message && message.trim()) {
+      parsed[email] = message.trim();
+    } else {
+      delete parsed[email];
+    }
+    localStorage.setItem('shughar_user_send_review_msgs', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
+
 
 /**
  * Returns transactions for a specific user (by email).

@@ -140,7 +140,7 @@ export default function TopBar({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                       d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  <p className="text-xs" style={{ color: '#334155' }}>No new notifications</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No new notifications</p>
                 </div>
               ) : (
                 notifications.map((n, i) => (
@@ -171,7 +171,7 @@ export default function TopBar({
                       <p className="text-xs font-semibold" style={{ color: '#E2E8F0' }}>{n.title}</p>
                       <p className="text-xs mt-0.5 truncate" style={{ color: '#64748B' }}>{n.body}</p>
                     </div>
-                    <span className="text-[10px] flex-shrink-0 mt-0.5 whitespace-nowrap" style={{ color: '#334155' }}>{n.time}</span>
+                    <span className="text-[10px] flex-shrink-0 mt-0.5 whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{n.time}</span>
                   </div>
                 ))
               )}

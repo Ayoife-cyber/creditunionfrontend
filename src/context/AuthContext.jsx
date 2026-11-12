@@ -26,28 +26,22 @@ function normaliseUser(raw) {
     cardType:       raw.cardType       || 'Platinum',
     spendLimit:     raw.spendLimit     || '$8,500',
     rewards:        raw.rewards        || '0 pts',
-    // balance
+    // balance & wallets (persisted in MongoDB across all devices)
     balanceUsd: raw.balanceUsd ?? DEFAULT_BALANCE.balanceUsd,
     btcHolding: raw.btcHolding ?? DEFAULT_BALANCE.btcHolding,
-    usdtHolding: (() => {
-      if (raw.usdtHolding !== undefined && raw.usdtHolding !== null) return raw.usdtHolding;
-      try {
-        const map = JSON.parse(localStorage.getItem('shughar_user_usdt_holdings') || '{}');
-        if (raw.email && map[raw.email] !== undefined) return map[raw.email];
-      } catch {}
-      return DEFAULT_BALANCE.usdtHolding;
-    })(),
-    withdrawalMessage: (() => {
-      if (raw.withdrawalMessage) return raw.withdrawalMessage;
-      try {
-        const map = JSON.parse(localStorage.getItem('shughar_user_withdrawal_msgs') || '{}');
-        if (raw.email && map[raw.email]) return map[raw.email];
-      } catch {}
-      return '';
-    })(),
+    usdtHolding: raw.usdtHolding ?? DEFAULT_BALANCE.usdtHolding,
+    btcWalletAddress: typeof raw.btcWalletAddress === 'string' ? raw.btcWalletAddress : '',
+    usdtWalletAddress: typeof raw.usdtWalletAddress === 'string' ? raw.usdtWalletAddress : '',
+    withdrawalMessage: typeof raw.withdrawalMessage === 'string' ? raw.withdrawalMessage : '',
     // These values are persisted by the backend and shared across devices.
     sendEnabled: raw.sendEnabled !== false,
     sendMessage: typeof raw.sendMessage === 'string' ? raw.sendMessage : '',
+    sendReviewPopupEnabled: Boolean(raw.sendReviewPopupEnabled),
+    sendReviewPopupMessage: typeof raw.sendReviewPopupMessage === 'string' ? raw.sendReviewPopupMessage : '',
+    globalSendReviewMessage: typeof raw.globalSendReviewMessage === 'string' ? raw.globalSendReviewMessage : '',
+    globalBtcWalletAddress: typeof raw.globalBtcWalletAddress === 'string' ? raw.globalBtcWalletAddress : '',
+    globalUsdtWalletAddress: typeof raw.globalUsdtWalletAddress === 'string' ? raw.globalUsdtWalletAddress : '',
+    globalWithdrawalMessage: typeof raw.globalWithdrawalMessage === 'string' ? raw.globalWithdrawalMessage : '',
   };
 }
 

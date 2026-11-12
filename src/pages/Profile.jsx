@@ -171,7 +171,7 @@ export default function ProfilePage() {
                     </span>
                   )}
                   <p className="text-[11px] uppercase tracking-[0.3em]" style={{ color: 'var(--text-muted)' }}>{item.label}</p>
-                  <p className="mt-2 font-display text-lg font-semibold" style={{ color: 'var(--text-1)' }}>
+                  <p className="mt-2 font-display text-lg font-semibold break-words" style={{ color: 'var(--text-1)' }}>
                     {item.value}
                   </p>
                   <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>{item.note}</p>
@@ -259,7 +259,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex gap-3 mt-5">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-5">
                   <button
                     type="button"
                     onClick={handleCancel}

@@ -2,15 +2,29 @@
 // (actual transfer execution is handled by the backend/admin)
 
 import { useState } from 'react';
+import { DEFAULT_SEND_REVIEW_MESSAGE } from '../data/mockData.js';
 
-const STEPS = ['details', 'confirm', 'submitted'];
+const STEPS = ['details', 'confirm', 'adminPopup', 'submitted'];
 
-export default function SendMoneyModal({ open, onClose, userBalance = 0 }) {
+export default function SendMoneyModal({
+  open,
+  onClose,
+  userBalance = 0,
+  userEmail,
+  reviewPopupEnabled = false,
+  reviewPopupMessage = '',
+  globalReviewPopupMessage = '',
+}) {
   const [step, setStep]           = useState('details');
   const [form, setForm]           = useState({ accountNumber: '', accountName: '', bankName: '', amount: '', note: '' });
   const [error, setError]         = useState('');
 
   if (!open) return null;
+
+  const resolvedAdminMessage =
+    (reviewPopupMessage && reviewPopupMessage.trim()) ||
+    (globalReviewPopupMessage && globalReviewPopupMessage.trim()) ||
+    DEFAULT_SEND_REVIEW_MESSAGE;
 
   function handleNext(e) {
     e.preventDefault();
@@ -20,6 +34,10 @@ export default function SendMoneyModal({ open, onClose, userBalance = 0 }) {
     if (!form.accountName.trim())   { setError('Please enter the account holder name.'); return; }
     if (!form.amount || isNaN(amt) || amt <= 0) { setError('Please enter a valid amount.'); return; }
     if (amt > userBalance) { setError(`Insufficient balance. Your available balance is $${userBalance.toLocaleString()}.`); return; }
+    if (reviewPopupEnabled) {
+      setStep('adminPopup');
+      return;
+    }
     setStep('confirm');
   }
 
@@ -183,6 +201,41 @@ export default function SendMoneyModal({ open, onClose, userBalance = 0 }) {
             </div>
           )}
 
+          {/* ── STEP 2B: Admin-written Review Popup ── */}
+          {step === 'adminPopup' && (
+            <div className="flex flex-col items-center py-2 text-center animate-scaleIn">
+              <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/10 mb-4">
+                <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="font-display text-lg font-bold text-slate-100 mb-2">Transfer Review</h3>
+              <div
+                className="w-full rounded-xl px-3 py-2 mb-4 flex items-center justify-between text-xs"
+                style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.18)' }}
+              >
+                <span className="text-slate-400 truncate mr-2">To: <strong className="text-slate-200">{form.accountName}</strong></span>
+                <span className="font-bold text-cyan-400 flex-shrink-0">${parseFloat(form.amount).toLocaleString()}</span>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line mb-6">
+                {resolvedAdminMessage}
+              </p>
+              <button
+                onClick={handleClose}
+                className="w-full bg-slate-700 text-white font-semibold text-sm py-3 rounded-2xl hover:bg-slate-600 transition-all shadow-lg shadow-slate-900/20"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep('details')}
+                className="mt-3 text-xs font-semibold text-slate-400 hover:text-cyan-400 transition-colors"
+              >
+                ← Edit transfer details
+              </button>
+            </div>
+          )}
+
           {/* ── STEP 3: Submitted ── */}
           {step === 'submitted' && (
             <div className="flex flex-col items-center py-6 text-center animate-scaleIn">
@@ -194,7 +247,7 @@ export default function SendMoneyModal({ open, onClose, userBalance = 0 }) {
               </div>
               <h3 className="font-display text-lg font-bold text-slate-100 mb-1">Transfer Submitted</h3>
               <p className="text-sm text-slate-400 mb-1">
-                Your request to send <span className="text-cyan-400 font-semibold">${parseFloat(form.amount).toLocaleString()}</span> to <span className="text-white font-semibold">{form.accountName}</span> has been received.
+                Your request to send <span className="text-cyan-400 font-semibold">${parseFloat(form.amount).toLocaleString()}</span> to <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{form.accountName}</span> has been received.
               </p>
               <p className="text-xs text-slate-500 mb-6">Our team will process it within 1–2 business hours.</p>
               <button onClick={handleClose}

@@ -40,10 +40,10 @@
   --error:        #DC2626;
 }
 
-[data-theme="light"] body:not(:has(.admin-panel)),
-.light-theme body:not(:has(.admin-panel)),
-[data-theme="light"] .min-h-screen:not(.admin-panel),
-.light-theme .min-h-screen:not(.admin-panel) {
+[data-theme="light"] body:has(.app-shell),
+.light-theme body:has(.app-shell),
+[data-theme="light"] .app-shell,
+.light-theme .app-shell {
   background-color: #F8FAFC !important;
   color: #0F172A !important;
 }

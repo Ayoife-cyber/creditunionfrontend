@@ -77,21 +77,21 @@ function ComingSoonSection({ title }) {
       {features.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-3">
           {features.map((f) => (
-            <div
-              key={f.label}
-              className="flex items-center gap-3 rounded-2xl p-3.5 opacity-60"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
-            >
               <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${color}12` }}
+                key={f.label}
+                className="flex items-center gap-3 rounded-2xl p-3.5"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
               >
-                <svg className="w-4 h-4" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d={f.icon} />
-                </svg>
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${color}12` }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={f.icon} />
+                  </svg>
+                </div>
+                <span className="text-sm text-slate-300 font-medium">{f.label}</span>
               </div>
-              <span className="text-sm text-slate-400 font-medium">{f.label}</span>
-            </div>
           ))}
         </div>
       )}
@@ -104,7 +104,7 @@ function ComingSoonSection({ title }) {
           <path strokeLinecap="round" strokeLinejoin="round"
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="text-xs" style={{ color: `${color}CC` }}>
+        <p className="text-xs" style={{ color: 'var(--text-2)' }}>
           Need to change something urgently? Open a support ticket and our team will assist you directly.
         </p>
       </div>
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                 <div
                   key={section.title}
                   onClick={() => setActiveSetting(section.title)}
-                  className="flex cursor-pointer items-center justify-between rounded-2xl p-4 transition-all"
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl p-4 transition-all"
                   style={{
                     background: active ? `${color}15` : 'var(--surface-high)',
                     border: active ? `1.5px solid ${color}` : '1px solid var(--border)',
@@ -231,7 +231,7 @@ export default function SettingsPage() {
               className="mt-6 rounded-3xl p-5 animate-slideInUp"
               style={{ background: 'var(--surface-high)', border: '1px solid var(--border)' }}
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.3em] text-cyan-500 font-semibold">Editable profile info</p>
                   <p className="mt-1 font-display text-lg font-bold" style={{ color: 'var(--text-1)' }}>Update the details shown on your profile</p>

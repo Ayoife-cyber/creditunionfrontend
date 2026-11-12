@@ -92,10 +92,10 @@ export default function ReferralPage() {
 
           {/* Code display */}
           <div
-            className="flex items-center justify-between rounded-2xl px-4 py-4 mb-3"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-2xl px-4 py-4 mb-3"
             style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)' }}
           >
-            <span className="font-display font-black text-2xl tracking-[0.25em] text-cyan-400">{code}</span>
+            <span className="font-display font-black text-lg sm:text-2xl tracking-[0.15em] sm:tracking-[0.25em] text-cyan-400">{code}</span>
             <button
               onClick={() => copy(code, setCodeCopied)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
@@ -162,7 +162,7 @@ export default function ReferralPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                     </svg>
                   </div>
-                  <span className="text-xs font-black" style={{ color: `${item.color}60` }}>{item.step}</span>
+                  <span className="text-xs font-black" style={{ color: item.color, opacity: 0.85 }}>{item.step}</span>
                 </div>
                 <p className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>{item.title}</p>
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{item.desc}</p>

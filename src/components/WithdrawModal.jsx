@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
-import { getUserWithdrawalMessage } from '../data/mockData.js';
+import { DEFAULT_WITHDRAWAL_MESSAGE } from '../data/mockData.js';
 
-export default function WithdrawModal({ open, onClose, userEmail, userMessage }) {
+export default function WithdrawModal({ open, onClose, userMessage, globalMessage }) {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (open) {
       if (userMessage && userMessage.trim()) {
         setMessage(userMessage.trim());
+      } else if (globalMessage && globalMessage.trim()) {
+        setMessage(globalMessage.trim());
       } else {
-        setMessage(getUserWithdrawalMessage(userEmail));
+        setMessage(DEFAULT_WITHDRAWAL_MESSAGE);
       }
     }
-  }, [open, userEmail, userMessage]);
+  }, [open, userMessage, globalMessage]);
 
   if (!open) return null;
 

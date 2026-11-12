@@ -74,7 +74,7 @@ export default function BalanceCard({ user, balanceUsd, btcHolding, usdtHolding,
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
             <p className="text-slate-400 text-sm font-medium mb-1">{getGreeting(now.getHours())}</p>
             <h2 className="font-display font-bold text-2xl lg:text-3xl text-white">{user?.fullName || 'Member'}</h2>
