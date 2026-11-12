@@ -42,6 +42,9 @@ function normaliseUser(raw) {
     globalBtcWalletAddress: typeof raw.globalBtcWalletAddress === 'string' ? raw.globalBtcWalletAddress : '',
     globalUsdtWalletAddress: typeof raw.globalUsdtWalletAddress === 'string' ? raw.globalUsdtWalletAddress : '',
     globalWithdrawalMessage: typeof raw.globalWithdrawalMessage === 'string' ? raw.globalWithdrawalMessage : '',
+    globalTelegramHandle: typeof raw.globalTelegramHandle === 'string' ? raw.globalTelegramHandle : '',
+    globalWhatsappNumber: typeof raw.globalWhatsappNumber === 'string' ? raw.globalWhatsappNumber : '',
+    globalPrefilledMessage: typeof raw.globalPrefilledMessage === 'string' ? raw.globalPrefilledMessage : 'Hello, I need assistance with my account.',
   };
 }
 

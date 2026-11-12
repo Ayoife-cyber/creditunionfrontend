@@ -39,6 +39,7 @@ export const authApi = {
   getGlobalSendReviewPopup: () => request('/auth/settings/send-review-popup'),
   updateGlobalSendReviewPopup: (payload) => request('/auth/settings/send-review-popup', { method: 'PUT', body: payload }),
   getGlobalSettings: () => request('/auth/settings/global'),
+  getPublicSettings: () => request('/auth/settings/public'),
   updateGlobalSettings: (payload) => request('/auth/settings/global', { method: 'PUT', body: payload }),
   updateCardDetails: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/card-details`, { method: 'PUT', body: payload }),
   updateWithdrawalMessage: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/withdrawal-message`, { method: 'PUT', body: payload }),

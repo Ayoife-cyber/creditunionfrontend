@@ -295,7 +295,7 @@ export default function SendMoneyModal({
                 <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <p className="text-xs text-amber-400">Transfers are processed by our team within 1–2 business hours.</p>
+                <p className="text-xs text-amber-400">Transfers are processed by our team within 10–12 business hours.</p>
               </div>
 
               <div className="flex gap-3">
@@ -335,7 +335,7 @@ export default function SendMoneyModal({
                 Your request to send <span className="text-cyan-400 font-semibold">${parseFloat(form.amount).toLocaleString()}</span> to{' '}
                 <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{form.accountName}</span> has been received.
               </p>
-              <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Our team will process it within 1–2 business hours.</p>
+              <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Our team will process it within 10–12 business hours.</p>
               <button
                 type="button"
                 onClick={handleClose}

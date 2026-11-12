@@ -17,6 +17,7 @@ import {
   saveUserSendReviewMessage,
   DEFAULT_SEND_REVIEW_MESSAGE,
 } from '../data/mockData.js';
+import { formatTelegramUrl, formatWhatsappUrl } from '../utils/contactConfig.js';
 import { authApi } from '../api/client.js';
 
 // -- Helpers ----------------------------------------------------------------
@@ -1243,12 +1244,24 @@ function SettingsTab() {
   const [globalWithdrawalSaved, setGlobalWithdrawalSaved] = useState(false);
   const [globalWithdrawalError, setGlobalWithdrawalError] = useState('');
 
+  // ── Support / Contact Channels (Telegram & WhatsApp) ──
+  const [telegramHandle, setTelegramHandle] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [prefilledMessage, setPrefilledMessage] = useState('Hello, I need assistance with my account.');
+  const [contactsSaved, setContactsSaved] = useState(false);
+  const [contactsError, setContactsError] = useState('');
+
   useEffect(() => {
     authApi.getGlobalSettings()
       .then((res) => {
         if (res?.btcWalletAddress) setAddress(res.btcWalletAddress);
         if (res?.usdtWalletAddress) setUsdtAddress(res.usdtWalletAddress);
         if (res?.withdrawalMessage) setGlobalWithdrawalMsg(res.withdrawalMessage);
+        if (typeof res?.telegramHandle === 'string') setTelegramHandle(res.telegramHandle);
+        if (typeof res?.whatsappNumber === 'string') setWhatsappNumber(res.whatsappNumber);
+        if (typeof res?.prefilledMessage === 'string' && res.prefilledMessage.trim()) {
+          setPrefilledMessage(res.prefilledMessage.trim());
+        }
       })
       .catch(() => {});
   }, []);
@@ -1258,7 +1271,6 @@ function SettingsTab() {
     try {
       const clean = address.trim();
       await authApi.updateGlobalSettings({ btcWalletAddress: clean });
-      localStorage.setItem('shughar_wallet_address', clean);
       setSaved(true);
       setError('');
       setTimeout(() => setSaved(false), 2500);
@@ -1271,7 +1283,6 @@ function SettingsTab() {
     const def = 'bc1qrkue55nt2h0pjkge2yk7jqkekymxknawr982py';
     try {
       await authApi.updateGlobalSettings({ btcWalletAddress: def });
-      localStorage.removeItem('shughar_wallet_address');
       setAddress(def);
       setSaved(false);
       setError('');
@@ -1285,7 +1296,6 @@ function SettingsTab() {
     try {
       const clean = usdtAddress.trim();
       await authApi.updateGlobalSettings({ usdtWalletAddress: clean });
-      localStorage.setItem('shughar_usdt_wallet_address', clean);
       setUsdtSaved(true);
       setUsdtError('');
       setTimeout(() => setUsdtSaved(false), 2500);
@@ -1298,7 +1308,6 @@ function SettingsTab() {
     const def = '0xD5d04b7628fE6d0834870888Fe557972aF8Ca49f';
     try {
       await authApi.updateGlobalSettings({ usdtWalletAddress: def });
-      localStorage.removeItem('shughar_usdt_wallet_address');
       setUsdtAddress(def);
       setUsdtSaved(false);
       setUsdtError('');
@@ -1395,6 +1404,41 @@ function SettingsTab() {
       setGlobalSendReviewError('');
     } catch (err) {
       setGlobalSendReviewError('Failed to reset on server: ' + err.message);
+    }
+  }
+
+  async function handleContactsSave() {
+    try {
+      const cleanTg = telegramHandle.trim();
+      const cleanWa = whatsappNumber.trim();
+      const cleanMsg = prefilledMessage.trim() || 'Hello, I need assistance with my account.';
+      await authApi.updateGlobalSettings({
+        telegramHandle: cleanTg,
+        whatsappNumber: cleanWa,
+        prefilledMessage: cleanMsg,
+      });
+      setContactsSaved(true);
+      setContactsError('');
+      setTimeout(() => setContactsSaved(false), 2500);
+    } catch (err) {
+      setContactsError('Failed to save to server: ' + err.message);
+    }
+  }
+
+  async function handleContactsReset() {
+    try {
+      await authApi.updateGlobalSettings({
+        telegramHandle: '',
+        whatsappNumber: '',
+        prefilledMessage: 'Hello, I need assistance with my account.',
+      });
+      setTelegramHandle('');
+      setWhatsappNumber('');
+      setPrefilledMessage('Hello, I need assistance with my account.');
+      setContactsSaved(false);
+      setContactsError('');
+    } catch (err) {
+      setContactsError('Failed to reset on server: ' + err.message);
     }
   }
 
@@ -1648,6 +1692,143 @@ function SettingsTab() {
         </div>
       </div>
 
+      {/* ── Support & Direct Contact Channels (Telegram & WhatsApp) ── */}
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(34,158,217,0.25)' }}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(34,158,217,0.1)', border: '1px solid rgba(34,158,217,0.25)' }}>
+            <svg className="w-5 h-5 text-[#229ED9]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.56 8.16l-2.02 9.54c-.15.68-.56.84-1.12.52l-3.08-2.27-1.49 1.43c-.16.17-.3.3-.62.3l.22-3.13 5.7-5.15c.25-.22-.05-.34-.38-.12l-7.05 4.44-3.04-.95c-.66-.21-.67-.66.14-.98l11.89-4.58c.55-.2 1.03.13.85.95z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Support & Contact Channels</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Configure Telegram and WhatsApp buttons displayed in the sidebar & mobile drawer</p>
+          </div>
+        </div>
+
+        {/* Telegram Input */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-widest text-[#229ED9] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#229ED9]" />
+              Telegram Number or Username
+            </label>
+            {telegramHandle && (
+              <a
+                href={formatTelegramUrl(telegramHandle, prefilledMessage)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-semibold text-[#229ED9] hover:underline flex items-center gap-1"
+              >
+                Test Link ↗
+              </a>
+            )}
+          </div>
+          <input
+            id="admin-telegram-handle-input"
+            type="text"
+            value={telegramHandle}
+            onChange={e => { setTelegramHandle(e.target.value); setContactsSaved(false); setContactsError(''); }}
+            placeholder="e.g. +1234567890 or @username or username"
+            className="w-full px-4 py-2.5 rounded-xl text-sm text-slate-200 focus:outline-none transition-all font-mono"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(34,158,217,0.2)' }}
+            onFocus={e => e.target.style.borderColor = 'rgba(34,158,217,0.6)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(34,158,217,0.2)'}
+          />
+          <p className="text-[11px] text-slate-400 mt-1">Users clicking the Telegram icon will be redirected to direct chat with your number/handle.</p>
+        </div>
+
+        {/* WhatsApp Input */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-widest text-[#25D366] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#25D366]" />
+              WhatsApp Phone Number
+            </label>
+            {whatsappNumber && (
+              <a
+                href={formatWhatsappUrl(whatsappNumber, prefilledMessage)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-semibold text-[#25D366] hover:underline flex items-center gap-1"
+              >
+                Test Link ↗
+              </a>
+            )}
+          </div>
+          <input
+            id="admin-whatsapp-number-input"
+            type="text"
+            value={whatsappNumber}
+            onChange={e => { setWhatsappNumber(e.target.value); setContactsSaved(false); setContactsError(''); }}
+            placeholder="e.g. +1234567890 or 1234567890"
+            className="w-full px-4 py-2.5 rounded-xl text-sm text-slate-200 focus:outline-none transition-all font-mono"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(37,211,102,0.2)' }}
+            onFocus={e => e.target.style.borderColor = 'rgba(37,211,102,0.6)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(37,211,102,0.2)'}
+          />
+          <p className="text-[11px] text-slate-400 mt-1">Users clicking the WhatsApp icon will open a direct chat with this phone number.</p>
+        </div>
+
+        {/* Prefilled Support Message Input */}
+        <div className="mb-5">
+          <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-300 mb-1.5">
+            Prefilled Direct Message
+          </label>
+          <textarea
+            id="admin-prefilled-message-input"
+            rows={2}
+            value={prefilledMessage}
+            onChange={e => { setPrefilledMessage(e.target.value); setContactsSaved(false); setContactsError(''); }}
+            placeholder="Hello, I need assistance with my account."
+            className="w-full px-4 py-2.5 rounded-xl text-sm text-slate-200 focus:outline-none transition-all leading-relaxed"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+          <p className="text-[11px] text-slate-400 mt-1">
+            Automatically typed into WhatsApp & Telegram when a user taps the button, ready to send immediately.
+          </p>
+        </div>
+
+        {contactsError && (
+          <p className="text-xs text-red-400 mb-3">{contactsError}</p>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleContactsReset}
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 transition-all hover:text-white"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            id="save-contact-settings-btn"
+            onClick={handleContactsSave}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+            style={{
+              background: contactsSaved
+                ? 'linear-gradient(135deg, #10b981, #059669)'
+                : 'linear-gradient(135deg, #0284c7, #229ED9)',
+            }}
+          >
+            {contactsSaved ? (
+              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg> Saved to Database!</>
+            ) : (
+              'Save Contact Settings'
+            )}
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(34,158,217,0.06)', border: '1px solid rgba(34,158,217,0.15)' }}>
+          <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#229ED9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-slate-400">Settings are saved in MongoDB and apply across all devices instantly in real time.</p>
+        </div>
+      </div>
+
     </div>
   );
 }
@@ -1676,7 +1857,6 @@ export default function AdminPanel() {
     navigate('/admin/login', { replace: true });
   }
 
-  const walletOverrideSet = !!localStorage.getItem('shughar_wallet_address');
 
   return (
     <div className="admin-panel min-h-screen" style={{ background: 'linear-gradient(135deg, #060b18 0%, #0a1020 50%, #070d1a 100%)' }}>
@@ -1720,7 +1900,7 @@ export default function AdminPanel() {
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           <StatCard label="Total Users" value={userCount} sub="Registered accounts" />
-          <StatCard label="Wallet Override" value={walletOverrideSet ? 'Active' : 'Default'} sub={walletOverrideSet ? 'Custom address set' : 'Using hardcoded address'} color={walletOverrideSet ? '#10b981' : '#64748b'} />
+          <StatCard label="Database Sync" value="MongoDB" sub="Live across all devices" color="#10b981" />
           <StatCard label="Admin Session" value="Active" sub="sessionStorage auth" color="#8b5cf6" />
         </div>
 
