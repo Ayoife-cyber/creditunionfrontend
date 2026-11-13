@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Logo from '../components/Logo.jsx';
+import { authApi } from '../api/client.js';
+import { formatTelegramUrl, formatWhatsappUrl } from '../utils/contactConfig.js';
 
 const EyeOpen = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -72,6 +74,31 @@ export default function Signup() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [contactSettings, setContactSettings] = useState({ telegramHandle: '', whatsappNumber: '', prefilledMessage: '' });
+
+  useEffect(() => {
+    authApi.getPublicSettings()
+      .then(res => {
+        if (res) {
+          setContactSettings({
+            telegramHandle: res.telegramHandle || '',
+            whatsappNumber: res.whatsappNumber || '',
+            prefilledMessage: res.prefilledMessage || '',
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenWhatsApp = () => {
+    const url = formatWhatsappUrl(contactSettings.whatsappNumber, contactSettings.prefilledMessage || 'Hello, I have an inquiry about creating an account.');
+    window.open(url || 'https://wa.me/', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleOpenTelegram = () => {
+    const url = formatTelegramUrl(contactSettings.telegramHandle, contactSettings.prefilledMessage || 'Hello, I have an inquiry about creating an account.');
+    window.open(url || 'https://t.me/', '_blank', 'noopener,noreferrer');
+  };
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
@@ -262,6 +289,25 @@ export default function Signup() {
               Sign in
             </Link>
           </p>
+
+          <div className="mt-5 pt-4 border-t border-cyan-500/10 flex items-center justify-center gap-3 text-xs text-slate-400">
+            <span>Need help?</span>
+            <button
+              type="button"
+              onClick={handleOpenWhatsApp}
+              className="text-[#25D366] hover:underline font-semibold cursor-pointer"
+            >
+              WhatsApp
+            </button>
+            <span className="text-slate-600">•</span>
+            <button
+              type="button"
+              onClick={handleOpenTelegram}
+              className="text-[#229ED9] hover:underline font-semibold cursor-pointer"
+            >
+              Telegram
+            </button>
+          </div>
         </div>
       </div>
     </div>
