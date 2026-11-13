@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from './Logo.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { formatTelegramUrl, formatWhatsappUrl } from '../utils/contactConfig.js';
+import { authApi } from '../api/client.js';
 
 export default function TopBar({
   title = 'Dashboard', user, notifications, hasUnread,
@@ -9,9 +11,40 @@ export default function TopBar({
 }) {
   const { theme, toggleTheme } = useTheme();
   const [panelOpen, setPanelOpen] = useState(false);
+  const [contactSettings, setContactSettings] = useState({ telegramHandle: '', whatsappNumber: '', prefilledMessage: '' });
   const navigate = useNavigate();
   const panelRef = useRef(null);
   const btnRef   = useRef(null);
+
+  useEffect(() => {
+    if (!user?.globalTelegramHandle || !user?.globalWhatsappNumber) {
+      authApi.getPublicSettings()
+        .then(res => {
+          if (res) {
+            setContactSettings({
+              telegramHandle: res.telegramHandle || '',
+              whatsappNumber: res.whatsappNumber || '',
+              prefilledMessage: res.prefilledMessage || '',
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.globalTelegramHandle, user?.globalWhatsappNumber]);
+
+  const telegramTarget = user?.globalTelegramHandle || contactSettings.telegramHandle || '';
+  const whatsappTarget = user?.globalWhatsappNumber || contactSettings.whatsappNumber || '';
+  const prefilledText  = user?.globalPrefilledMessage || contactSettings.prefilledMessage || 'Hello, I need assistance with my account.';
+
+  const handleOpenWhatsApp = () => {
+    const url = formatWhatsappUrl(whatsappTarget, prefilledText);
+    window.open(url || 'https://wa.me/', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleOpenTelegram = () => {
+    const url = formatTelegramUrl(telegramTarget, prefilledText);
+    window.open(url || 'https://t.me/', '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     const handler = (e) => {
@@ -59,8 +92,36 @@ export default function TopBar({
         <h1 className="font-display font-bold text-xl" style={{ color: 'var(--text-1)' }}>{title}</h1>
       </div>
 
-      {/* Right: theme toggle + notifications + avatar */}
-      <div className="flex items-center gap-2 sm:gap-3 relative">
+      {/* Right: quick contact + theme toggle + notifications + avatar */}
+      <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
+        {/* Direct WhatsApp Contact Button */}
+        <button
+          onClick={handleOpenWhatsApp}
+          className="p-1.5 sm:p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer group"
+          style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.28)' }}
+          title="Direct message on WhatsApp"
+        >
+          <div className="w-5 h-5 rounded-full bg-[#25D366] flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+            </svg>
+          </div>
+        </button>
+
+        {/* Direct Telegram Contact Button */}
+        <button
+          onClick={handleOpenTelegram}
+          className="p-1.5 sm:p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer group"
+          style={{ background: 'rgba(34,158,217,0.12)', border: '1px solid rgba(34,158,217,0.28)' }}
+          title="Direct message on Telegram"
+        >
+          <div className="w-5 h-5 rounded-full bg-[#229ED9] flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.56 8.16l-2.02 9.54c-.15.68-.56.84-1.12.52l-3.08-2.27-1.49 1.43c-.16.17-.3.3-.62.3l.22-3.13 5.7-5.15c.25-.22-.05-.34-.38-.12l-7.05 4.44-3.04-.95c-.66-.21-.67-.66.14-.98l11.89-4.58c.55-.2 1.03.13.85.95z"/>
+            </svg>
+          </div>
+        </button>
+
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
