@@ -6,7 +6,7 @@ import { authApi } from '../api/client.js';
 export { MENU_GROUPS };
 
 // Keys that need special Dashboard handling (modals/drawers) rather than plain navigation
-const SPECIAL_KEYS = new Set(['deposit', 'save-invest', 'support']);
+const SPECIAL_KEYS = new Set(['deposit', 'support']);
 
 export default function Sidebar({ activeSection, onNavigate, onLogout, user, onSpecialAction }) {
   const profileName = user?.fullName || 'Account Holder';

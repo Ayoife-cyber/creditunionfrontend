@@ -4,7 +4,7 @@ import Logo from './Logo.jsx';
 import { formatTelegramUrl, formatWhatsappUrl } from '../utils/contactConfig.js';
 import { authApi } from '../api/client.js';
 
-const SPECIAL_KEYS = new Set(['deposit', 'save-invest', 'support']);
+const SPECIAL_KEYS = new Set(['deposit', 'support']);
 
 export default function MobileNav({ activeSection, onNavigate, open, onClose, user, onLogout, onSpecialAction }) {
   const profileName = user?.fullName || 'Account Holder';

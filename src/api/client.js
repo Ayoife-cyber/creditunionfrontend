@@ -29,6 +29,7 @@ export const authApi = {
   signup: (payload) => request('/auth/signup', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
+  updateProfile: (payload) => request('/auth/profile', { method: 'PUT', body: payload }),
   verifyOtp: (payload) => request('/auth/verify-otp', { method: 'POST', body: payload }),
   toggleCardLock: (email) => request(`/auth/users/${encodeURIComponent(email)}/toggle-card-lock`, { method: 'PUT' }),
   toggleSend: (email, sendEnabled) => request('/auth/users/' + encodeURIComponent(email) + '/toggle-send', { method: 'PUT', body: { sendEnabled } }),
@@ -46,6 +47,7 @@ export const authApi = {
   getUsers: () => request('/auth/users'),
   deleteUser: (email) => request(`/auth/users/${encodeURIComponent(email)}`, { method: 'DELETE' }),
   toggleUserStatus: (email) => request(`/auth/users/${encodeURIComponent(email)}/status`, { method: 'PUT' }),
+  executeTrade: (payload) => request('/auth/trade', { method: 'POST', body: payload }),
 
 
   getUserTransactions: (email) => request(`/transactions/user/${encodeURIComponent(email)}`),

@@ -102,7 +102,7 @@ export default function SupportTicketDrawer({ open, onClose }) {
       />
 
       {/* Drawer Panel */}
-      <div className="support-drawer w-full max-w-md max-w-[100vw] bg-slate-900 border-l border-white/10 shadow-2xl overflow-y-auto">
+      <div className="support-drawer w-full max-w-md bg-slate-900 border-l border-white/10 shadow-2xl overflow-y-auto">
         <div className="sticky top-0 flex items-center justify-between p-6 border-b border-white/5 bg-slate-900/95 backdrop-blur">
           <h2 className="font-display font-bold text-xl text-slate-100">Support Ticket</h2>
           <button

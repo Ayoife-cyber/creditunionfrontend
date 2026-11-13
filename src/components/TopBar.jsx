@@ -100,11 +100,13 @@ export default function TopBar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
-          {hasUnread && (
+          {hasUnread && notifications && notifications.length > 0 && (
             <span
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-              style={{ backgroundColor: '#06B6D4', boxShadow: '0 0 8px rgba(6,182,212,0.8)' }}
-            />
+              className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-slate-950 flex items-center justify-center animate-pulse"
+              style={{ backgroundColor: '#06B6D4', boxShadow: '0 0 10px rgba(6,182,212,0.6)' }}
+            >
+              {notifications.length}
+            </span>
           )}
         </button>
 
@@ -124,7 +126,7 @@ export default function TopBar({
               <span className="font-display font-semibold text-sm" style={{ color: '#E2E8F0' }}>Notifications</span>
               <button
                 onClick={onClearNotifications}
-                className="text-xs font-medium transition-smooth"
+                className="text-xs font-medium transition-smooth cursor-pointer"
                 style={{ color: '#06B6D4' }}
                 onMouseEnter={e => e.target.style.color = '#22D3EE'}
                 onMouseLeave={e => e.target.style.color = '#06B6D4'}
@@ -145,8 +147,14 @@ export default function TopBar({
               ) : (
                 notifications.map((n, i) => (
                   <div
-                    key={i}
-                    className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-smooth"
+                    key={n.id || i}
+                    onClick={() => {
+                      if (n.type === 'transaction') {
+                        setPanelOpen(false);
+                        navigate('/transactions');
+                      }
+                    }}
+                    className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-smooth group"
                     style={{ borderBottom: '1px solid rgba(6,182,212,0.06)' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(6,182,212,0.05)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -168,10 +176,18 @@ export default function TopBar({
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold" style={{ color: '#E2E8F0' }}>{n.title}</p>
-                      <p className="text-xs mt-0.5 truncate" style={{ color: '#64748B' }}>{n.body}</p>
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="text-xs font-semibold truncate" style={{ color: '#E2E8F0' }}>{n.title}</p>
+                        <span className="text-[10px] flex-shrink-0 whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{n.time}</span>
+                      </div>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: '#94A3B8' }}>{n.body}</p>
+                      {n.txId && (
+                        <p className="text-[10px] font-mono mt-0.5 flex items-center gap-1" style={{ color: '#06B6D4' }}>
+                          <span>ID:</span>
+                          <span className="font-bold">{n.txId}</span>
+                        </p>
+                      )}
                     </div>
-                    <span className="text-[10px] flex-shrink-0 mt-0.5 whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{n.time}</span>
                   </div>
                 ))
               )}

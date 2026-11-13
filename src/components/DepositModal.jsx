@@ -27,12 +27,13 @@ const TABS = [
   },
 ];
 
-export default function DepositModal({ open, onClose, onCopy, userEmail, btcAddressOverride, usdtAddressOverride }) {
+export default function DepositModal({ open, onClose, onCopy, userEmail, btcAddressOverride, usdtAddressOverride, user }) {
   const [activeTab, setActiveTab] = useState('btc');
   const [copied, setCopied] = useState(false);
 
-  const btcAddress  = (btcAddressOverride && btcAddressOverride.trim()) || getUserWalletAddress(userEmail);
-  const usdtAddress = (usdtAddressOverride && usdtAddressOverride.trim()) || getUserUsdtWalletAddress(userEmail);
+  const email = userEmail || user?.email;
+  const btcAddress  = (btcAddressOverride && btcAddressOverride.trim()) || user?.btcWalletAddress || user?.globalBtcWalletAddress || getUserWalletAddress(email);
+  const usdtAddress = (usdtAddressOverride && usdtAddressOverride.trim()) || user?.usdtWalletAddress || user?.globalUsdtWalletAddress || getUserUsdtWalletAddress(email);
 
   const tab = TABS.find(t => t.key === activeTab);
   const walletAddress = activeTab === 'btc' ? btcAddress : usdtAddress;

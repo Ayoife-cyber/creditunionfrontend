@@ -15,6 +15,7 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import AdminProtectedRoute from './components/AdminProtectedRoute.jsx';
 import NotFound from './pages/NotFound.jsx';
 import ReferralPage from './pages/Referral.jsx';
+import SaveInvestPage from './pages/SaveInvest.jsx';
 
 export default function App() {
   const location = useLocation();
@@ -89,6 +90,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ReferralPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/save-invest"
+        element={
+          <ProtectedRoute>
+            <SaveInvestPage />
           </ProtectedRoute>
         }
       />

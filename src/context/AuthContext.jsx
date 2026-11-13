@@ -45,6 +45,7 @@ function normaliseUser(raw) {
     globalTelegramHandle: typeof raw.globalTelegramHandle === 'string' ? raw.globalTelegramHandle : '',
     globalWhatsappNumber: typeof raw.globalWhatsappNumber === 'string' ? raw.globalWhatsappNumber : '',
     globalPrefilledMessage: typeof raw.globalPrefilledMessage === 'string' ? raw.globalPrefilledMessage : 'Hello, I need assistance with my account.',
+    openPositions: Array.isArray(raw.openPositions) ? raw.openPositions : [],
   };
 }
 
@@ -191,13 +192,35 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const updateProfile = useCallback((updates) => {
+  const updateProfile = useCallback(async (updates) => {
+    // Optimistic update
     setUser((current) => {
       const next = current ? { ...current, ...updates } : { ...updates };
       localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
       return next;
     });
-  }, []);
+
+    if (token) {
+      try {
+        const res = await authApi.updateProfile(updates);
+        if (res?.user) {
+          persistUser(res.user);
+        }
+      } catch (err) {
+        console.error('Failed to sync profile to backend:', err);
+      }
+    }
+  }, [token, persistUser]);
+
+  const refreshUser = useCallback(async () => {
+    if (!token) return null;
+    try {
+      const { user: freshUser } = await authApi.me(token);
+      return persistUser(freshUser);
+    } catch {
+      return null;
+    }
+  }, [token, persistUser]);
 
   // ── Auto-logout after 15 minutes of inactivity ──
   const INACTIVITY_MS = 15 * 60 * 1000;
@@ -237,6 +260,8 @@ export function AuthProvider({ children }) {
     verifyOtp,
     logout,
     updateProfile,
+    updateUserState: persistUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -71,7 +71,7 @@ export default function Dashboard() {
         setDepositOpen(true);
         break;
       case 'save-invest':
-        setDepositOpen(true);
+        navigate('/save-invest');
         break;
       case 'support':
         setSupportTicketOpen(true);
@@ -104,9 +104,7 @@ export default function Dashboard() {
       return;
     }
     if (action === 'swap') {
-      setComingSoonTitle('Swap');
-      setComingSoonMessage(SWAP_LOW_BALANCE_MSG);
-      setComingSoonOpen(true);
+      navigate('/save-invest');
       return;
     }
     if (action === 'send') {
