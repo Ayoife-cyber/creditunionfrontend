@@ -46,7 +46,8 @@ export const authApi = {
   updateWithdrawalMessage: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/withdrawal-message`, { method: 'PUT', body: payload }),
   getUsers: () => request('/auth/users'),
   deleteUser: (email) => request(`/auth/users/${encodeURIComponent(email)}`, { method: 'DELETE' }),
-  toggleUserStatus: (email) => request(`/auth/users/${encodeURIComponent(email)}/status`, { method: 'PUT' }),
+  toggleUserStatus: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/status`, { method: 'PUT', body: payload }),
+  updateInactiveMessage: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/inactive-message`, { method: 'PUT', body: payload }),
   executeTrade: (payload) => request('/auth/trade', { method: 'POST', body: payload }),
 
 

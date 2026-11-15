@@ -83,6 +83,7 @@ export default function TransactionsPage() {
 
       if (tx.status === 'pending') pending++;
       else if (tx.status === 'processing') processing++;
+      else if (tx.status === 'completed_settling') settling++;
       else if (tx.status === 'failed') failed++;
     });
 
@@ -94,6 +95,7 @@ export default function TransactionsPage() {
       debitsCount,
       pending,
       processing,
+      settling,
       failed,
       count: transactions.length,
     };
@@ -104,7 +106,8 @@ export default function TransactionsPage() {
   const handleTotalRecordsClick = (statusKey) => {
     let target = statusKey;
     if (!target) {
-      if (stats.processing > 0) target = 'processing';
+      if (stats.settling > 0) target = 'completed_settling';
+      else if (stats.processing > 0) target = 'processing';
       else if (stats.pending > 0) target = 'pending';
       else if (stats.failed > 0) target = 'failed';
       else target = 'all';
@@ -187,8 +190,21 @@ export default function TransactionsPage() {
             label="Total records"
             value={String(stats.count)}
             sub={
-              (stats.processing > 0 || stats.pending > 0 || stats.failed > 0) ? (
+              (stats.processing > 0 || stats.settling > 0 || stats.pending > 0 || stats.failed > 0) ? (
                 <div className="flex flex-wrap gap-1.5 mt-1">
+                  {stats.settling > 0 && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); handleTotalRecordsClick('completed_settling'); }}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                        activeFilter === 'completed_settling'
+                          ? 'bg-teal-500 text-slate-950 shadow-sm'
+                          : 'text-teal-300 bg-teal-500/20 border border-teal-500/30 hover:bg-teal-500/30'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${activeFilter === 'completed_settling' ? 'bg-slate-950' : 'bg-teal-400 animate-pulse'}`} />
+                      {stats.settling} settling (10-12h)
+                    </span>
+                  )}
                   {stats.processing > 0 && (
                     <span
                       onClick={(e) => { e.stopPropagation(); handleTotalRecordsClick('processing'); }}

@@ -49,7 +49,13 @@ const TX_TYPE_OPTIONS = [
   { value: 'swap', label: 'Swap', color: '#8b5cf6', tag: 'crypto' },
 ];
 
-const STATUS_OPTIONS = ['completed', 'pending', 'processing', 'failed'];
+const STATUS_OPTIONS = [
+  { value: 'completed', label: 'Completed (Settled - Immediate)' },
+  { value: 'completed_settling', label: 'Completed (Settling - 10-12h Hold)' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'failed', label: 'Failed' },
+];
 
 function emptyTx() {
   return {
@@ -147,10 +153,16 @@ function TxFormModal({ open, tx, onSave, onClose }) {
             <div>
               <label style={labelStyle}>Status</label>
               <select style={inputStyle} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>
+          {form.status === 'completed_settling' && (
+            <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-[11px] text-teal-300 flex items-center gap-2">
+              <span>⏱️</span>
+              <span>Displays as <strong>Completed (Settling)</strong> on user devices with a <strong>10–12 hour</strong> clearing timeframe notice.</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>Amount</label>
@@ -210,6 +222,10 @@ function UsersTab({ onRefresh }) {
   const [sendReviewMsg, setSendReviewMsg] = useState('');
   const [sendReviewMsgSaved, setSendReviewMsgSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [inactiveModalOpen, setInactiveModalOpen] = useState(false);
+  const [inactiveMsg, setInactiveMsg] = useState('');
+  const [inactiveMsgSaved, setInactiveMsgSaved] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const reload = useCallback(async () => {
     try {
@@ -220,6 +236,7 @@ function UsersTab({ onRefresh }) {
         sendMessage: user.sendMessage || '',
         sendReviewPopupEnabled: Boolean(user.sendReviewPopupEnabled),
         sendReviewPopupMessage: user.sendReviewPopupMessage || '',
+        inactiveMessage: user.inactiveMessage || '',
       })));
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -259,6 +276,8 @@ function UsersTab({ onRefresh }) {
        setWithdrawalMsgSaved(false);
        setSendReviewMsg(editUser.sendReviewPopupMessage || '');
        setSendReviewMsgSaved(false);
+       setInactiveMsg(editUser.inactiveMessage || '');
+       setInactiveMsgSaved(false);
     }
   }, [editUser]);
 
@@ -508,17 +527,88 @@ function UsersTab({ onRefresh }) {
       console.error('Failed to clear send review popup message:', err);
     }
   }
-  async function handleToggleStatus() {
+  const INACTIVE_PRESETS = [
+    {
+      label: 'Verification Required',
+      text: 'Your account has been temporarily placed on inactive status pending identity verification. Please contact customer support with your Account ID to complete the verification process.',
+    },
+    {
+      label: 'Security Compliance',
+      text: 'Your account has been temporarily restricted due to a routine security compliance review. Please reach out to our official support on WhatsApp or Telegram to reactivate your access.',
+    },
+    {
+      label: 'Routine Maintenance',
+      text: 'Your account access is temporarily paused for scheduled maintenance and account review. Please contact support if you require urgent assistance.',
+    },
+  ];
+
+  function handleAccountStatusButtonClick() {
     if (!editUser) return;
+    if (editUser.status === 'inactive') {
+      handleReactivateAccount();
+    } else {
+      const defaultText = editUser.inactiveMessage?.trim() || INACTIVE_PRESETS[0].text;
+      setInactiveMsg(defaultText);
+      setInactiveModalOpen(true);
+    }
+  }
+
+  async function handleConfirmSetInactive() {
+    if (!editUser) return;
+    setStatusLoading(true);
     try {
-      const res = await authApi.toggleUserStatus(editUser.email);
-      const updated = { ...editUser, status: res.status };
+      const messageToSave = inactiveMsg.trim() || INACTIVE_PRESETS[0].text;
+      const res = await authApi.toggleUserStatus(editUser.email, {
+        status: 'inactive',
+        inactiveMessage: messageToSave,
+      });
+      const updated = {
+        ...editUser,
+        status: 'inactive',
+        inactiveMessage: res.inactiveMessage ?? messageToSave,
+      };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setInactiveModalOpen(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to set inactive status:', err);
+      alert('Failed to set inactive status: ' + err.message);
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function handleReactivateAccount() {
+    if (!editUser) return;
+    setStatusLoading(true);
+    try {
+      const res = await authApi.toggleUserStatus(editUser.email, { status: 'active' });
+      const updated = { ...editUser, status: 'active' };
       setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
       setEditUser(updated);
       onRefresh();
     } catch (err) {
-      console.error('Failed to toggle user status:', err);
-      alert('Failed to toggle user status: ' + err.message);
+      console.error('Failed to set active status:', err);
+      alert('Failed to set active status: ' + err.message);
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function handleSaveInactiveMsgOnly() {
+    if (!editUser) return;
+    try {
+      await authApi.updateInactiveMessage(editUser.email, { inactiveMessage: inactiveMsg.trim() });
+      const updated = { ...editUser, inactiveMessage: inactiveMsg.trim() };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setInactiveMsgSaved(true);
+      setTimeout(() => setInactiveMsgSaved(false), 2000);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to update inactive message:', err);
+      alert('Failed to update inactive message: ' + err.message);
     }
   }
 
@@ -637,18 +727,69 @@ function UsersTab({ onRefresh }) {
                 </button>
               </div>
               
-              <div className="rounded-xl p-5 flex flex-col justify-between" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+              <div
+                className="rounded-xl p-5 flex flex-col justify-between transition-all"
+                style={{
+                  background: editUser.status === 'inactive' ? 'rgba(239, 68, 68, 0.06)' : 'rgba(16, 185, 129, 0.05)',
+                  border: editUser.status === 'inactive' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(16, 185, 129, 0.15)',
+                }}
+              >
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-400">Account Status</h4>
-                  <p className="text-[11px] text-slate-500 mt-1 mb-4">Status: {editUser.status === 'inactive' ? 'Inactive' : 'Active'}</p>
+                  <div className="flex items-center justify-between">
+                    <h4
+                      className="text-xs font-bold uppercase tracking-widest"
+                      style={{ color: editUser.status === 'inactive' ? '#f87171' : '#34d399' }}
+                    >
+                      Account Status
+                    </h4>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        editUser.status === 'inactive'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      }`}
+                    >
+                      ● {editUser.status === 'inactive' ? 'Inactive' : 'Active'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 mb-2">
+                    Status: {editUser.status === 'inactive' ? 'Inactive' : 'Active'}
+                  </p>
+                  {editUser.status === 'inactive' && editUser.inactiveMessage && (
+                    <div className="mb-3 p-2.5 rounded-lg bg-black/25 border border-red-500/15">
+                      <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Written Popup Notice:</p>
+                      <p className="text-[11px] text-slate-300 italic line-clamp-2">"{editUser.inactiveMessage}"</p>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={handleToggleStatus}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5"
-                  style={{ background: editUser.status === 'inactive' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #64748b, #475569)' }}
-                >
-                  {editUser.status === 'inactive' ? 'Set Active' : 'Set Inactive'}
-                </button>
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleAccountStatusButtonClick}
+                    disabled={statusLoading}
+                    className="flex-1 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 active:scale-[0.99]"
+                    style={{
+                      background: editUser.status === 'inactive'
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : 'linear-gradient(135deg, #64748b, #475569)',
+                    }}
+                  >
+                    {statusLoading ? 'Updating...' : editUser.status === 'inactive' ? 'Set Active' : 'Set Inactive'}
+                  </button>
+                  {editUser.status === 'inactive' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInactiveMsg(editUser.inactiveMessage || INACTIVE_PRESETS[0].text);
+                        setInactiveModalOpen(true);
+                      }}
+                      className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition-all bg-white/5 border border-white/10 hover:bg-white/10"
+                      title="Edit the written notice shown to this user"
+                    >
+                      Edit Notice
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1076,6 +1217,145 @@ function UsersTab({ onRefresh }) {
           onConfirm={handleDeleteUser}
           onCancel={() => setConfirmDelete(false)}
         />
+
+        {/* Admin Written Inactive Account Modal */}
+        {inactiveModalOpen && editUser && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-fade-in"
+          >
+            <div
+              className="w-full max-w-lg rounded-3xl p-6 sm:p-7 relative overflow-hidden transition-all my-auto"
+              style={{
+                background: '#0d1527',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                boxShadow: '0 25px 70px rgba(0, 0, 0, 0.7), 0 0 35px rgba(239, 68, 68, 0.15)',
+              }}
+            >
+              {/* Top ambient glow */}
+              <div
+                className="absolute -top-20 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full pointer-events-none blur-3xl"
+                style={{ background: 'rgba(239, 68, 68, 0.2)' }}
+              />
+
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4 pb-4 border-b border-white/10 relative">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500/15 text-red-400 border border-red-500/30 mb-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                    Account Inactive Modal Setup
+                  </div>
+                  <h3 className="text-lg font-bold text-white">
+                    {editUser.status === 'inactive' ? 'Edit User Inactive Popup' : 'Configure Inactive Modal & Deactivate'}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Target User: <span className="text-cyan-400 font-semibold">{editUser.fullName || editUser.email}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInactiveModalOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Presets */}
+              <div className="mb-3.5 relative">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Quick Preset Templates
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {INACTIVE_PRESETS.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setInactiveMsg(preset.text)}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Written Textarea */}
+              <div className="mb-4 relative">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Admin Written Popup Message (Seen by User)
+                </label>
+                <textarea
+                  rows={4}
+                  value={inactiveMsg}
+                  onChange={e => setInactiveMsg(e.target.value)}
+                  placeholder="Write the exact notice that will appear in the modal when this user opens their account..."
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all leading-relaxed resize-y"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                  }}
+                />
+                <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
+                  <span>Preserves line breaks. WhatsApp & Telegram support buttons are automatically attached.</span>
+                  <span>{inactiveMsg.length} characters</span>
+                </div>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="mb-5 rounded-2xl p-4 bg-black/40 border border-red-500/20 relative">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold text-red-400 mb-2">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>User Popup Preview</span>
+                </div>
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-slate-200 whitespace-pre-line leading-relaxed">
+                  {inactiveMsg.trim() || 'Your account has been temporarily placed on inactive status by the administration. Please contact customer support to reactivate your account.'}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2.5 relative">
+                <button
+                  type="button"
+                  onClick={() => setInactiveModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+
+                {editUser.status === 'inactive' ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleSaveInactiveMsgOnly();
+                      setInactiveModalOpen(false);
+                    }}
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-md hover:brightness-110 active:scale-[0.99]"
+                    style={{ background: 'linear-gradient(135deg, #06B6D4, #6366F1)' }}
+                  >
+                    Save Notice Message
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConfirmSetInactive}
+                    disabled={statusLoading}
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-md hover:brightness-110 active:scale-[0.99] flex items-center gap-1.5"
+                    style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                  >
+                    {statusLoading ? 'Updating...' : 'Confirm & Set Inactive'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     );
@@ -1208,7 +1488,20 @@ function TransactionsTab() {
                         <span className="text-xs text-slate-400">{tx.date}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <Badge text={tx.status} color={tx.status === 'completed' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : tx.status === 'processing' ? '#06b6d4' : '#ef4444'} />
+                        <Badge
+                          text={tx.status === 'completed_settling' ? 'Completed (Settling 10-12h)' : tx.status}
+                          color={
+                            tx.status === 'completed'
+                              ? '#10b981'
+                              : tx.status === 'completed_settling'
+                              ? '#14b8a6'
+                              : tx.status === 'pending'
+                              ? '#f59e0b'
+                              : tx.status === 'processing'
+                              ? '#06b6d4'
+                              : '#ef4444'
+                          }
+                        />
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">

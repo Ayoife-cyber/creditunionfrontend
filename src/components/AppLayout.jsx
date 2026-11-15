@@ -6,6 +6,7 @@ import { MENU_GROUPS } from '../data/navConfig.js';
 import MobileNav from './MobileNav.jsx';
 import TopBar from './TopBar.jsx';
 import { authApi } from '../api/client.js';
+import AccountInactiveModal from './AccountInactiveModal.jsx';
 
 export default function AppLayout({ title, children, onSidebarAction }) {
   const navigate  = useNavigate();
@@ -49,12 +50,17 @@ export default function AppLayout({ title, children, onSidebarAction }) {
             const isCrypto = tx.type === 'crypto' || tx.tag === 'crypto';
             const isPending = tx.status === 'pending';
             const isProcessing = tx.status === 'processing';
+            const isSettling = tx.status === 'completed_settling';
 
             let icon = '💰';
             let iconPath = 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z';
             let color = '#10B981';
 
-            if (isProcessing) {
+            if (isSettling) {
+              icon = '⏱️';
+              iconPath = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
+              color = '#14B8A6';
+            } else if (isProcessing) {
               icon = '⏳';
               iconPath = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
               color = '#06B6D4';
@@ -72,7 +78,9 @@ export default function AppLayout({ title, children, onSidebarAction }) {
               color = '#F97316';
             }
 
-            const statusLabel = tx.status
+            const statusLabel = tx.status === 'completed_settling'
+              ? 'Completed • Settling (10-12h)'
+              : tx.status
               ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1)
               : 'Completed';
 
@@ -165,6 +173,11 @@ export default function AppLayout({ title, children, onSidebarAction }) {
         onLogout={logout}
         onSpecialAction={resolvedSpecialAction}
       />
+
+      {/* Admin Written Inactive Account Popup Modal */}
+      {user?.status === 'inactive' && (
+        <AccountInactiveModal user={user} onSignOut={logout} />
+      )}
     </div>
   );
 }

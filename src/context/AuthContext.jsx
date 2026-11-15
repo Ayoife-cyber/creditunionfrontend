@@ -32,6 +32,8 @@ function normaliseUser(raw) {
     usdtHolding: raw.usdtHolding ?? DEFAULT_BALANCE.usdtHolding,
     btcWalletAddress: typeof raw.btcWalletAddress === 'string' ? raw.btcWalletAddress : '',
     usdtWalletAddress: typeof raw.usdtWalletAddress === 'string' ? raw.usdtWalletAddress : '',
+    status: raw.status || 'active',
+    inactiveMessage: typeof raw.inactiveMessage === 'string' ? raw.inactiveMessage : '',
     withdrawalMessage: typeof raw.withdrawalMessage === 'string' ? raw.withdrawalMessage : '',
     // These values are persisted by the backend and shared across devices.
     sendEnabled: raw.sendEnabled !== false,

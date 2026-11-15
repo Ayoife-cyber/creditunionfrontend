@@ -4,10 +4,11 @@
 import { useRef } from 'react';
 
 const STATUS_STYLE = {
-  completed:  { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', color: '#10B981', label: 'Completed' },
-  pending:    { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  color: '#F59E0B', label: 'Pending'   },
-  processing: { bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.25)',  color: '#06B6D4', label: 'Processing' },
-  failed:     { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   color: '#EF4444', label: 'Failed'    },
+  completed:          { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)', color: '#10B981', label: 'Completed (Settled)' },
+  completed_settling: { bg: 'rgba(20,184,166,0.12)', border: 'rgba(20,184,166,0.3)',  color: '#14B8A6', label: 'Completed (Settling 10-12h)' },
+  pending:            { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  color: '#F59E0B', label: 'Pending' },
+  processing:         { bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.25)',  color: '#06B6D4', label: 'Processing' },
+  failed:             { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   color: '#EF4444', label: 'Failed' },
 };
 
 const TYPE_ICON = {
@@ -84,6 +85,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
       ['Type',           tx.type.charAt(0).toUpperCase() + tx.type.slice(1)],
       ['Date & Time',    tx.date],
       ['Status',         status.label],
+      ...(tx.status === 'completed_settling' ? [['Settlement Window', '10-12 Hours (Clearing in progress)']] : []),
     ];
 
     let y = 185;
@@ -210,6 +212,35 @@ export default function TransactionReceiptModal({ tx, onClose }) {
               </div>
             )}
 
+            {tx.status === 'completed_settling' && (
+              <div
+                className="mt-4 p-3.5 rounded-2xl flex flex-col gap-2.5 text-left w-full animate-fadeIn"
+                style={{ background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.28)' }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="text-teal-400 text-sm mt-0.5 animate-pulse">⏱️</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-teal-300">Completed • Settlement In Progress</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                        10–12 Hours Hold
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                      This transaction is confirmed and marked as completed. Funds hold a standard clearing timeframe of <strong>10 to 12 hours</strong> before they are finalized and settled into your account balance.
+                    </p>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-black/25 border border-teal-500/15 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">Estimated Settlement:</span>
+                  <span className="font-bold text-teal-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping"></span>
+                    Within 10–12 Hours
+                  </span>
+                </div>
+              </div>
+            )}
+
             {tx.status === 'completed' && (
               <div
                 className="mt-4 p-3 rounded-xl flex items-start gap-2.5 text-left w-full animate-fadeIn"
@@ -219,7 +250,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
                 <div>
                   <p className="text-xs font-bold text-emerald-300">Transaction Settled</p>
                   <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                    This transaction was successfully verified and settled into your account.
+                    This transaction was successfully verified and fully settled into your account.
                   </p>
                 </div>
               </div>
@@ -232,6 +263,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
               { label: 'Reference',  value: ref },
               { label: 'Type',       value: tx.type.charAt(0).toUpperCase() + tx.type.slice(1) },
               { label: 'Date',       value: tx.date },
+              ...(tx.status === 'completed_settling' ? [{ label: 'Settlement Window', value: '10–12 Hours (Hold in progress)' }] : []),
               { label: 'Direction',  value: isCredit ? 'Credit (incoming)' : 'Debit (outgoing)' },
             ].map(({ label, value }) => (
               <div

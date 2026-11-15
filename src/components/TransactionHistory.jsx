@@ -170,7 +170,7 @@ const TransactionHistory = forwardRef(function TransactionHistory({
           : filter === 'failed'
           ? tx.status === 'failed'
           : filter === 'completed'
-          ? tx.status === 'completed'
+          ? (tx.status === 'completed' || tx.status === 'completed_settling')
           : tx.tag === filter || tx.type === filter;
 
       const matchSearch =
@@ -348,10 +348,12 @@ const TransactionHistory = forwardRef(function TransactionHistory({
                     {displayAmount}
                   </p>
                 <span
-                  className="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize"
+                  className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
                   style={{
                     background:
-                      tx.status === 'processing'
+                      tx.status === 'completed_settling'
+                        ? 'rgba(20,184,166,0.12)'
+                        : tx.status === 'processing'
                         ? 'rgba(6,182,212,0.12)'
                         : tx.status === 'pending'
                         ? 'rgba(245,158,11,0.1)'
@@ -359,7 +361,9 @@ const TransactionHistory = forwardRef(function TransactionHistory({
                         ? 'rgba(239,68,68,0.1)'
                         : 'rgba(16,185,129,0.1)',
                     color:
-                      tx.status === 'processing'
+                      tx.status === 'completed_settling'
+                        ? '#14B8A6'
+                        : tx.status === 'processing'
                         ? '#06B6D4'
                         : tx.status === 'pending'
                         ? '#F59E0B'
@@ -367,7 +371,9 @@ const TransactionHistory = forwardRef(function TransactionHistory({
                         ? '#EF4444'
                         : '#10B981',
                     border:
-                      tx.status === 'processing'
+                      tx.status === 'completed_settling'
+                        ? '1px solid rgba(20,184,166,0.3)'
+                        : tx.status === 'processing'
                         ? '1px solid rgba(6,182,212,0.28)'
                         : tx.status === 'pending'
                         ? '1px solid rgba(245,158,11,0.2)'
@@ -376,7 +382,14 @@ const TransactionHistory = forwardRef(function TransactionHistory({
                         : '1px solid rgba(16,185,129,0.2)',
                   }}
                 >
-                  {tx.status}
+                  {tx.status === 'completed_settling' ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                      <span>Completed (10-12h Hold)</span>
+                    </>
+                  ) : (
+                    <span className="capitalize">{tx.status}</span>
+                  )}
                 </span>
               </div>
             </div>
