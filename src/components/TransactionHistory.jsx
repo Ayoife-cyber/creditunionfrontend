@@ -43,13 +43,24 @@ function TxIcon({ type }) {
 
 const CACHE_KEY = 'shughar_tx_cache';
 
-const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight = false }, ref) {
+const TransactionHistory = forwardRef(function TransactionHistory({
+  fullHeight = false,
+  activeFilter: controlledFilter,
+  onFilterChange,
+}, ref) {
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState('all');
+  const [internalFilter, setInternalFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState('latest');
   const [selectedTx, setSelectedTx] = useState(null);
+
+  const filter = controlledFilter !== undefined ? controlledFilter : internalFilter;
+
+  const handleSelectFilter = (newFilter) => {
+    setInternalFilter(newFilter);
+    onFilterChange?.(newFilter);
+  };
 
   // Load from cache instantly so history shows on first render
   const [transactions, setTransactions] = useState(() => {
@@ -83,18 +94,95 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
   // Use per-user transactions from backend
   const TRANSACTIONS = transactions;
 
+  const statusCounts = useMemo(() => {
+    let processing = 0, pending = 0, failed = 0;
+    TRANSACTIONS.forEach(t => {
+      if (t.status === 'processing') processing++;
+      else if (t.status === 'pending') pending++;
+      else if (t.status === 'failed') failed++;
+    });
+    return { processing, pending, failed };
+  }, [TRANSACTIONS]);
+
+  const filterOptions = useMemo(() => {
+    const list = [{ key: 'all', label: 'All' }];
+
+    if (statusCounts.processing > 0 || filter === 'processing') {
+      list.push({
+        key: 'processing',
+        label: `Processing (${statusCounts.processing})`,
+        dot: '#06B6D4',
+        glow: true,
+      });
+    }
+    if (statusCounts.pending > 0 || filter === 'pending') {
+      list.push({
+        key: 'pending',
+        label: `Pending (${statusCounts.pending})`,
+        dot: '#F59E0B',
+      });
+    }
+    if (statusCounts.failed > 0 || filter === 'failed') {
+      list.push({
+        key: 'failed',
+        label: `Failed (${statusCounts.failed})`,
+        dot: '#EF4444',
+      });
+    }
+    if (filter === 'attention') {
+      const attnCount = statusCounts.processing + statusCounts.pending + statusCounts.failed;
+      list.push({
+        key: 'attention',
+        label: `Attention (${attnCount})`,
+        dot: '#06B6D4',
+        glow: true,
+      });
+    }
+
+    list.push(
+      { key: 'credit', label: 'Credits (+)' },
+      { key: 'withdrawal', label: 'Withdrawals (-)' },
+      { key: 'deposit', label: 'Deposits' },
+      { key: 'crypto', label: 'Crypto' }
+    );
+    return list;
+  }, [statusCounts, filter]);
+
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return TRANSACTIONS.filter((tx) => {
-      const matchFilter = filter === 'all' || tx.tag === filter;
+      const isDebit = tx.type === 'withdrawal' || tx.tag === 'withdrawal';
+      const isCredit = !isDebit;
+
+      const matchFilter =
+        filter === 'all'
+          ? true
+          : filter === 'credit'
+          ? isCredit
+          : filter === 'withdrawal'
+          ? isDebit
+          : filter === 'attention'
+          ? ['processing', 'pending', 'failed'].includes(tx.status)
+          : filter === 'processing'
+          ? tx.status === 'processing'
+          : filter === 'pending'
+          ? tx.status === 'pending'
+          : filter === 'failed'
+          ? tx.status === 'failed'
+          : filter === 'completed'
+          ? tx.status === 'completed'
+          : tx.tag === filter || tx.type === filter;
+
       const matchSearch =
         !q ||
         tx.label.toLowerCase().includes(q) ||
         tx.amount.toLowerCase().includes(q) ||
-        tx.date.toLowerCase().includes(q);
+        tx.date.toLowerCase().includes(q) ||
+        (tx.status && tx.status.toLowerCase().includes(q));
+
       return matchFilter && matchSearch;
     });
-  }, [filter, query]);
+  }, [TRANSACTIONS, filter, query]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
@@ -114,12 +202,12 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
   }, [filtered, sortMode]);
 
   const summary = useMemo(() => {
-    const deposits = filtered.filter((tx) => tx.tag === 'deposit').length;
-    const withdrawals = filtered.filter((tx) => tx.tag === 'withdrawal').length;
+    const credits = filtered.filter((tx) => tx.type !== 'withdrawal' && tx.tag !== 'withdrawal').length;
+    const debits = filtered.filter((tx) => tx.type === 'withdrawal' || tx.tag === 'withdrawal').length;
     return {
       count: filtered.length,
-      deposits,
-      withdrawals,
+      credits,
+      debits,
     };
   }, [filtered]);
 
@@ -129,7 +217,7 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
         <div>
           <h3 className="font-display font-semibold text-sm text-slate-200">Recent Activity</h3>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            {summary.count} items • {summary.deposits} deposits • {summary.withdrawals} withdrawals
+            {summary.count} items • {summary.credits} credits • {summary.debits} debits
           </p>
         </div>
         <button onClick={() => navigate('/transactions')} className="text-xs text-brand-accent font-semibold hover:underline cursor-pointer">See all</button>
@@ -150,25 +238,31 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
       </div>
 
       <div className="flex gap-2 mb-3 overflow-x-auto pb-1 filter-scroll">
-        {FILTERS.map((f) => (
+        {filterOptions.map((f) => (
           <button
             key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`filter-btn whitespace-nowrap text-xs px-3 py-1.5 rounded-xl font-semibold transition-all ${
+            onClick={() => handleSelectFilter(f.key)}
+            className={`filter-btn whitespace-nowrap text-xs px-3 py-1.5 rounded-xl font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               filter === f.key ? 'active shadow-lg shadow-brand-accent/20' : ''
             }`}
           >
+            {f.dot && (
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${f.glow ? 'animate-pulse' : ''}`}
+                style={{ backgroundColor: f.dot }}
+              />
+            )}
             {f.label}
           </button>
         ))}
       </div>
 
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 filter-scroll">
+      <div className="flex gap-2 mb-3 overflow-x-auto pb-1 filter-scroll">
         {SORTS.map((s) => (
           <button
             key={s.key}
             onClick={() => setSortMode(s.key)}
-            className="rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all"
+            className="rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer"
             style={{
               background: sortMode === s.key ? 'rgba(6,182,212,0.15)' : 'var(--surface-high)',
               color:      sortMode === s.key ? 'var(--accent)' : 'var(--text-muted)',
@@ -179,6 +273,25 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
           </button>
         ))}
       </div>
+
+      {/* Active Filter Callout */}
+      {filter !== 'all' && (
+        <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="text-cyan-300 font-semibold capitalize">
+              Filtered by: {filter === 'attention' ? 'Processing / Pending / Failed' : filter}
+            </span>
+            <span className="text-slate-400">({filtered.length} found)</span>
+          </div>
+          <button
+            onClick={() => handleSelectFilter('all')}
+            className="text-cyan-400 hover:text-cyan-200 underline text-xs font-semibold cursor-pointer"
+          >
+            Reset to All
+          </button>
+        </div>
+      )}
 
       <div className={`space-y-2 pr-1 custom-scroll ${fullHeight ? '' : 'max-h-64 overflow-y-auto'}`}>
         {sorted.length === 0 ? (
@@ -202,43 +315,74 @@ const TransactionHistory = forwardRef(function TransactionHistory({ fullHeight =
             </div>
           </div>
         ) : (
-          sorted.map((tx) => (
-            <div
-              key={tx.id}
-              className="tx-item rounded-xl p-2 cursor-pointer transition-colors"
-              style={{ border: '1px solid transparent' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-high)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
-              onClick={() => setSelectedTx(tx)}
-            >
+          sorted.map((tx) => {
+            const isDebit = tx.type === 'withdrawal' || tx.tag === 'withdrawal';
+            const isCredit = !isDebit;
+            const rawAmount = String(tx.amount || '').trim();
+            const displayAmount = isCredit
+              ? (rawAmount.startsWith('+') ? rawAmount : `+${rawAmount.replace(/^-/, '')}`)
+              : (rawAmount.startsWith('-') ? rawAmount : `-${rawAmount.replace(/^\+/, '')}`);
+            const displayColor = isDebit ? '#EF4444' : '#10B981';
+
+            return (
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${tx.color}15`, color: tx.color }}
+                key={tx.id}
+                className="tx-item rounded-xl p-2 cursor-pointer transition-colors"
+                style={{ border: '1px solid transparent' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-high)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
+                onClick={() => setSelectedTx({ ...tx, amount: displayAmount })}
               >
-                <TxIcon type={tx.type} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>{tx.label}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{tx.date}</p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold" style={{ color: tx.color }}>
-                  {tx.amount}
-                </p>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${displayColor}15`, color: displayColor }}
+                >
+                  <TxIcon type={tx.type} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>{tx.label}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{tx.date}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-bold" style={{ color: displayColor }}>
+                    {displayAmount}
+                  </p>
                 <span
-                  className="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  className="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize"
                   style={{
-                    background: tx.status === 'pending' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
-                    color:      tx.status === 'pending' ? '#F59E0B' : '#10B981',
-                    border:     tx.status === 'pending' ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(16,185,129,0.2)',
+                    background:
+                      tx.status === 'processing'
+                        ? 'rgba(6,182,212,0.12)'
+                        : tx.status === 'pending'
+                        ? 'rgba(245,158,11,0.1)'
+                        : tx.status === 'failed'
+                        ? 'rgba(239,68,68,0.1)'
+                        : 'rgba(16,185,129,0.1)',
+                    color:
+                      tx.status === 'processing'
+                        ? '#06B6D4'
+                        : tx.status === 'pending'
+                        ? '#F59E0B'
+                        : tx.status === 'failed'
+                        ? '#EF4444'
+                        : '#10B981',
+                    border:
+                      tx.status === 'processing'
+                        ? '1px solid rgba(6,182,212,0.28)'
+                        : tx.status === 'pending'
+                        ? '1px solid rgba(245,158,11,0.2)'
+                        : tx.status === 'failed'
+                        ? '1px solid rgba(239,68,68,0.2)'
+                        : '1px solid rgba(16,185,129,0.2)',
                   }}
                 >
                   {tx.status}
                 </span>
               </div>
             </div>
-          ))
-        )}
+          );
+        })
+      )}
       </div>
 
       {/* Receipt modal */}

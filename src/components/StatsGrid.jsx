@@ -9,10 +9,10 @@ export default function StatsGrid({ btcHolding = 0, balanceUsd = 0 }) {
 
     TRANSACTIONS.forEach((tx) => {
       const amount = parseFloat(tx.amount.replace(/[^0-9.-]/g, ''));
-      if (tx.type === 'deposit' || (tx.type === 'swap' && tx.amount.startsWith('+'))) {
-        totalIncome += Math.abs(amount);
-      } else if (tx.type === 'withdrawal' || (tx.type === 'crypto' && tx.amount.startsWith('-'))) {
+      if (tx.type === 'withdrawal' || tx.tag === 'withdrawal') {
         totalExpenses += Math.abs(amount);
+      } else {
+        totalIncome += Math.abs(amount);
       }
     });
 

@@ -45,22 +45,27 @@ export default function AppLayout({ title, children, onSidebarAction }) {
               ? (rawId.length > 8 ? rawId.slice(-8).toUpperCase() : rawId.toUpperCase())
               : 'TX-ID';
 
-            const isWithdrawal = tx.type === 'withdrawal' || String(tx.amount || '').startsWith('-');
-            const isCrypto = tx.type === 'crypto';
+            const isWithdrawal = tx.type === 'withdrawal' || tx.tag === 'withdrawal';
+            const isCrypto = tx.type === 'crypto' || tx.tag === 'crypto';
             const isPending = tx.status === 'pending';
+            const isProcessing = tx.status === 'processing';
 
             let icon = '💰';
             let iconPath = 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z';
             let color = '#10B981';
 
-            if (isCrypto) {
+            if (isProcessing) {
+              icon = '⏳';
+              iconPath = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
+              color = '#06B6D4';
+            } else if (isCrypto) {
               icon = '₿';
               iconPath = 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
-              color = '#F59E0B';
+              color = '#10B981';
             } else if (isWithdrawal) {
               icon = '↗';
               iconPath = 'M5 10l7-7m0 0l7 7M12 3v18';
-              color = '#A855F7';
+              color = '#EF4444';
             } else if (isPending) {
               icon = '⚠️';
               iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z';
@@ -71,15 +76,20 @@ export default function AppLayout({ title, children, onSidebarAction }) {
               ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1)
               : 'Completed';
 
+            const rawAmount = String(tx.amount || '').trim();
+            const formattedAmount = !isWithdrawal
+              ? (rawAmount.startsWith('+') ? rawAmount : `+${rawAmount.replace(/^-/, '')}`)
+              : (rawAmount.startsWith('-') ? rawAmount : `-${rawAmount.replace(/^\+/, '')}`);
+
             txNotifications.push({
               id: tx.id || tx._id,
               txId: `#${shortId}`,
               fullTxId: rawId,
               icon,
               iconPath,
-              color: tx.color || color,
+              color: isWithdrawal ? '#EF4444' : (tx.color || color),
               title: `${tx.label || 'Transaction'} (${statusLabel})`,
-              body: `${tx.amount || '$0.00'}`,
+              body: formattedAmount || '$0.00',
               time: tx.date || 'Recent',
               type: 'transaction',
             });

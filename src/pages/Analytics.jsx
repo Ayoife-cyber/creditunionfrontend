@@ -6,10 +6,10 @@ import { DEFAULT_BALANCE } from '../config/balanceConfig.js';
 
 // Derive monthly inflow / outflow from real transactions
 function computeMetrics(transactions, balanceUsd, btcHolding) {
-  const deposits    = transactions.filter(t => t.tag === 'deposit');
+  const credits     = transactions.filter(t => t.tag !== 'withdrawal' && t.type !== 'withdrawal');
   const withdrawals = transactions.filter(t => t.tag === 'withdrawal' || t.type === 'withdrawal');
 
-  const inflow  = deposits.reduce((sum, t) => {
+  const inflow  = credits.reduce((sum, t) => {
     const n = parseFloat(String(t.amount).replace(/[^0-9.]/g, ''));
     return sum + (isNaN(n) ? 0 : n);
   }, 0);
@@ -63,16 +63,16 @@ export default function AnalyticsPage() {
 
   const metrics = [
     {
-      label: 'Total inflow',
+      label: 'Total inflow (Credit)',
       value: `$${Math.round(inflow).toLocaleString()}`,
-      detail: `${transactions.filter(t => t.tag === 'deposit').length} deposit transactions`,
+      detail: `${transactions.filter(t => t.tag !== 'withdrawal' && t.type !== 'withdrawal').length} credit transactions`,
       color: '#10B981',
       icon: 'M7 11l5-5m0 0l5 5m-5-5v12',
     },
     {
-      label: 'Total outflow',
+      label: 'Total outflow (Debit)',
       value: `$${Math.round(outflow).toLocaleString()}`,
-      detail: `${transactions.filter(t => t.tag === 'withdrawal' || t.type === 'withdrawal').length} withdrawal transactions`,
+      detail: `${transactions.filter(t => t.tag === 'withdrawal' || t.type === 'withdrawal').length} withdrawal transactions (debit)`,
       color: '#EF4444',
       icon: 'M17 13l-5 5m0 0l-5-5m5 5V6',
     },

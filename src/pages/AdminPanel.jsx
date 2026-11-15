@@ -49,7 +49,7 @@ const TX_TYPE_OPTIONS = [
   { value: 'swap', label: 'Swap', color: '#8b5cf6', tag: 'crypto' },
 ];
 
-const STATUS_OPTIONS = ['completed', 'pending', 'failed'];
+const STATUS_OPTIONS = ['completed', 'pending', 'processing', 'failed'];
 
 function emptyTx() {
   return {
@@ -93,12 +93,34 @@ function TxFormModal({ open, tx, onSave, onClose }) {
 
   function handleTypeChange(val) {
     const opt = TX_TYPE_OPTIONS.find(o => o.value === val) || TX_TYPE_OPTIONS[0];
-    setForm(f => ({ ...f, type: val, tag: opt.tag, color: opt.color }));
+    setForm(f => {
+      let cleanAmount = f.amount ? f.amount.trim() : '';
+      if (cleanAmount) {
+        if (val === 'withdrawal') {
+          cleanAmount = '-' + cleanAmount.replace(/^[+-]/, '');
+        } else {
+          cleanAmount = '+' + cleanAmount.replace(/^[+-]/, '');
+        }
+      }
+      return { ...f, type: val, tag: opt.tag, color: opt.color, amount: cleanAmount };
+    });
   }
 
   function handleSave() {
     if (!form.label.trim() || !form.amount.trim()) return;
-    onSave(form);
+    let cleanAmount = form.amount.trim();
+    // Withdrawal is the ONLY debit (-), everything else (deposit, crypto, swap) is credit (+)
+    if (form.type === 'withdrawal') {
+      if (!cleanAmount.startsWith('-')) {
+        cleanAmount = '-' + cleanAmount.replace(/^\+/, '');
+      }
+    } else {
+      cleanAmount = cleanAmount.replace(/^-/, '');
+      if (!cleanAmount.startsWith('+')) {
+        cleanAmount = '+' + cleanAmount;
+      }
+    }
+    onSave({ ...form, amount: cleanAmount });
   }
 
   const labelStyle = { fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(148,163,184,0.7)', marginBottom: '6px', display: 'block' };
@@ -1186,7 +1208,7 @@ function TransactionsTab() {
                         <span className="text-xs text-slate-400">{tx.date}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <Badge text={tx.status} color={tx.status === 'completed' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : '#ef4444'} />
+                        <Badge text={tx.status} color={tx.status === 'completed' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : tx.status === 'processing' ? '#06b6d4' : '#ef4444'} />
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">

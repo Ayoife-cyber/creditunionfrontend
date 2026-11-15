@@ -5,11 +5,11 @@ export const BTC_PRICE_USD = 80000; // simulated live price
 export const TRANSACTIONS = [
   { id: 1, type: 'deposit', label: 'Salary Deposit', amount: '+$4,200.00', status: 'completed', date: 'Today, 09:14', tag: 'deposit', color: '#10b981' },
   { id: 2, type: 'withdrawal', label: 'Wire Transfer', amount: '-$850.00', status: 'completed', date: 'Today, 08:30', tag: 'withdrawal', color: '#ef4444' },
-  { id: 3, type: 'crypto', label: 'BTC Purchase', amount: '-$1,136.42', status: 'completed', date: 'Yesterday, 17:05', tag: 'crypto', color: '#f97316' },
+  { id: 3, type: 'crypto', label: 'BTC Purchase', amount: '+$1,136.42', status: 'completed', date: 'Yesterday, 17:05', tag: 'crypto', color: '#10b981' },
   { id: 4, type: 'swap', label: 'BTC → USDT Swap', amount: '+$980.00', status: 'completed', date: 'Yesterday, 14:21', tag: 'crypto', color: '#8b5cf6' },
   { id: 5, type: 'deposit', label: 'Freelance Payment', amount: '+$2,500.00', status: 'completed', date: 'May 10, 11:00', tag: 'deposit', color: '#10b981' },
   { id: 6, type: 'withdrawal', label: 'Rent Payment', amount: '-$1,200.00', status: 'completed', date: 'May 9, 08:00', tag: 'withdrawal', color: '#ef4444' },
-  { id: 7, type: 'crypto', label: 'BTC Transfer Out', amount: '-0.05 BTC', status: 'pending', date: 'May 8, 16:44', tag: 'crypto', color: '#f97316' },
+  { id: 7, type: 'crypto', label: 'BTC Staking Credit', amount: '+0.05 BTC', status: 'pending', date: 'May 8, 16:44', tag: 'crypto', color: '#10b981' },
   { id: 8, type: 'deposit', label: 'Dividend Income', amount: '+$320.00', status: 'completed', date: 'May 7, 10:30', tag: 'deposit', color: '#10b981' },
   { id: 9, type: 'swap', label: 'USD → BTC Swap', amount: '+0.012 BTC', status: 'completed', date: 'May 6, 13:15', tag: 'crypto', color: '#8b5cf6' },
   { id: 10, type: 'withdrawal', label: 'ATM Withdrawal', amount: '-$200.00', status: 'completed', date: 'May 5, 09:00', tag: 'withdrawal', color: '#ef4444' },

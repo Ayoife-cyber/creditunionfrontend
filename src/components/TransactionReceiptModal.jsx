@@ -4,9 +4,10 @@
 import { useRef } from 'react';
 
 const STATUS_STYLE = {
-  completed: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', color: '#10B981', label: 'Completed' },
-  pending:   { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  color: '#F59E0B', label: 'Pending'   },
-  failed:    { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   color: '#EF4444', label: 'Failed'    },
+  completed:  { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', color: '#10B981', label: 'Completed' },
+  pending:    { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  color: '#F59E0B', label: 'Pending'   },
+  processing: { bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.25)',  color: '#06B6D4', label: 'Processing' },
+  failed:     { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   color: '#EF4444', label: 'Failed'    },
 };
 
 const TYPE_ICON = {
@@ -29,7 +30,16 @@ export default function TransactionReceiptModal({ tx, onClose }) {
   const status = STATUS_STYLE[tx.status] || STATUS_STYLE.completed;
   const ref    = generateRef(tx.id);
   const icon   = TYPE_ICON[tx.type] || TYPE_ICON.deposit;
-  const isCredit = tx.tag === 'deposit' || String(tx.amount).startsWith('+');
+
+  // ONLY withdrawal is debit; crypto, deposits, swaps, etc. are ALWAYS credit!
+  const isDebit = tx.type === 'withdrawal' || tx.tag === 'withdrawal';
+  const isCredit = !isDebit;
+
+  const rawAmount = String(tx.amount || '').trim();
+  const formattedAmount = isCredit
+    ? (rawAmount.startsWith('+') ? rawAmount : `+${rawAmount.replace(/^-/, '')}`)
+    : (rawAmount.startsWith('-') ? rawAmount : `-${rawAmount.replace(/^\+/, '')}`);
+  const amountColor = isCredit ? '#10B981' : '#EF4444';
 
   async function handleDownload() {
     // Lazy-load jsPDF so it doesn't bloat the initial bundle
@@ -58,10 +68,10 @@ export default function TransactionReceiptModal({ tx, onClose }) {
     doc.text(tx.status.toUpperCase(), W / 2, 103, { align: 'center' });
 
     // Amount
-    doc.setTextColor(241, 245, 249);
+    doc.setTextColor(isCredit ? 16 : 239, isCredit ? 185 : 68, isCredit ? 129 : 68);
     doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
-    doc.text(tx.amount, W / 2, 145, { align: 'center' });
+    doc.text(formattedAmount, W / 2, 145, { align: 'center' });
 
     // Divider
     doc.setDrawColor(30, 41, 59);
@@ -137,13 +147,13 @@ export default function TransactionReceiptModal({ tx, onClose }) {
           <div className="flex flex-col items-center mb-6">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-              style={{ background: `${tx.color}18`, border: `1px solid ${tx.color}30` }}
+              style={{ background: `${amountColor}18`, border: `1px solid ${amountColor}30` }}
             >
-              <svg className="w-6 h-6" fill="none" stroke={tx.color} strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke={amountColor} strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
               </svg>
             </div>
-            <p className="font-display text-3xl font-extrabold" style={{ color: tx.color }}>{tx.amount}</p>
+            <p className="font-display text-3xl font-extrabold" style={{ color: amountColor }}>{formattedAmount}</p>
             <p className="text-sm text-slate-400 mt-1">{tx.label}</p>
 
             {/* Status badge */}
@@ -153,6 +163,67 @@ export default function TransactionReceiptModal({ tx, onClose }) {
             >
               {status.label}
             </div>
+
+            {/* Status explanation alert */}
+            {tx.status === 'processing' && (
+              <div
+                className="mt-4 p-3 rounded-xl flex items-start gap-2.5 text-left w-full animate-fadeIn"
+                style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)' }}
+              >
+                <span className="text-cyan-400 text-sm mt-0.5 animate-pulse">⏳</span>
+                <div>
+                  <p className="text-xs font-bold text-cyan-300">Transaction In Progress</p>
+                  <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                    This transaction is currently processing on the network. Funds will reflect in your account balance once confirmations are complete.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {tx.status === 'pending' && (
+              <div
+                className="mt-4 p-3 rounded-xl flex items-start gap-2.5 text-left w-full animate-fadeIn"
+                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}
+              >
+                <span className="text-amber-400 text-sm mt-0.5">⚠️</span>
+                <div>
+                  <p className="text-xs font-bold text-amber-300">Awaiting Clearance</p>
+                  <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                    This transaction is pending administrative review or network clearance. You will be notified once settled.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {tx.status === 'failed' && (
+              <div
+                className="mt-4 p-3 rounded-xl flex items-start gap-2.5 text-left w-full animate-fadeIn"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+              >
+                <span className="text-red-400 text-sm mt-0.5">✕</span>
+                <div>
+                  <p className="text-xs font-bold text-red-300">Transaction Failed</p>
+                  <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                    This transaction could not be completed. If funds were deducted, please contact customer support.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {tx.status === 'completed' && (
+              <div
+                className="mt-4 p-3 rounded-xl flex items-start gap-2.5 text-left w-full animate-fadeIn"
+                style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}
+              >
+                <span className="text-emerald-400 text-sm mt-0.5">✓</span>
+                <div>
+                  <p className="text-xs font-bold text-emerald-300">Transaction Settled</p>
+                  <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                    This transaction was successfully verified and settled into your account.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Detail rows */}
