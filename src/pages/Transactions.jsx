@@ -63,7 +63,7 @@ export default function TransactionsPage() {
   }, [token]);
 
   const stats = useMemo(() => {
-    let totalIn = 0, totalOut = 0, pending = 0, processing = 0, failed = 0;
+    let totalIn = 0, totalOut = 0, pending = 0, processing = 0, settling = 0, failed = 0;
     let creditsCount = 0, debitsCount = 0;
 
     transactions.forEach(tx => {

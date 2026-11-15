@@ -95,18 +95,27 @@ const TransactionHistory = forwardRef(function TransactionHistory({
   const TRANSACTIONS = transactions;
 
   const statusCounts = useMemo(() => {
-    let processing = 0, pending = 0, failed = 0;
+    let processing = 0, pending = 0, settling = 0, failed = 0;
     TRANSACTIONS.forEach(t => {
       if (t.status === 'processing') processing++;
       else if (t.status === 'pending') pending++;
+      else if (t.status === 'completed_settling') settling++;
       else if (t.status === 'failed') failed++;
     });
-    return { processing, pending, failed };
+    return { processing, pending, settling, failed };
   }, [TRANSACTIONS]);
 
   const filterOptions = useMemo(() => {
     const list = [{ key: 'all', label: 'All' }];
 
+    if (statusCounts.settling > 0 || filter === 'completed_settling') {
+      list.push({
+        key: 'completed_settling',
+        label: `Settling (${statusCounts.settling})`,
+        dot: '#14B8A6',
+        glow: true,
+      });
+    }
     if (statusCounts.processing > 0 || filter === 'processing') {
       list.push({
         key: 'processing',
@@ -130,7 +139,7 @@ const TransactionHistory = forwardRef(function TransactionHistory({
       });
     }
     if (filter === 'attention') {
-      const attnCount = statusCounts.processing + statusCounts.pending + statusCounts.failed;
+      const attnCount = statusCounts.processing + statusCounts.settling + statusCounts.pending + statusCounts.failed;
       list.push({
         key: 'attention',
         label: `Attention (${attnCount})`,
@@ -162,7 +171,9 @@ const TransactionHistory = forwardRef(function TransactionHistory({
           : filter === 'withdrawal'
           ? isDebit
           : filter === 'attention'
-          ? ['processing', 'pending', 'failed'].includes(tx.status)
+          ? ['processing', 'completed_settling', 'pending', 'failed'].includes(tx.status)
+          : filter === 'completed_settling'
+          ? tx.status === 'completed_settling'
           : filter === 'processing'
           ? tx.status === 'processing'
           : filter === 'pending'
