@@ -48,6 +48,8 @@ export const authApi = {
   deleteUser: (email) => request(`/auth/users/${encodeURIComponent(email)}`, { method: 'DELETE' }),
   toggleUserStatus: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/status`, { method: 'PUT', body: payload }),
   updateInactiveMessage: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/inactive-message`, { method: 'PUT', body: payload }),
+  updateAutoTopUp: (email, payload) => request(`/auth/users/${encodeURIComponent(email)}/auto-top-up`, { method: 'PUT', body: payload }),
+  triggerAutoTopUp: (email) => request(`/auth/users/${encodeURIComponent(email)}/auto-top-up/trigger`, { method: 'POST' }),
   executeTrade: (payload) => request('/auth/trade', { method: 'POST', body: payload }),
 
 

@@ -396,7 +396,7 @@ const TransactionHistory = forwardRef(function TransactionHistory({
                   {tx.status === 'completed_settling' ? (
                     <>
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
-                      <span>Completed (10-12h Hold)</span>
+                      <span>Completed ({tx.settlementTimeframe || '10-12h'} Hold)</span>
                     </>
                   ) : (
                     <span className="capitalize">{tx.status}</span>

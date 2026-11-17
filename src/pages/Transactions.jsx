@@ -202,7 +202,7 @@ export default function TransactionsPage() {
                       }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${activeFilter === 'completed_settling' ? 'bg-slate-950' : 'bg-teal-400 animate-pulse'}`} />
-                      {stats.settling} settling (10-12h)
+                      {stats.settling} settling hold
                     </span>
                   )}
                   {stats.processing > 0 && (

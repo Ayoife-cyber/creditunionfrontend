@@ -51,10 +51,33 @@ const TX_TYPE_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { value: 'completed', label: 'Completed (Settled - Immediate)' },
-  { value: 'completed_settling', label: 'Completed (Settling - 10-12h Hold)' },
+  { value: 'completed_settling', label: 'Completed (Settling Window)' },
   { value: 'pending', label: 'Pending' },
   { value: 'processing', label: 'Processing' },
   { value: 'failed', label: 'Failed' },
+];
+
+const SETTLEMENT_TIMEFRAMES = [
+  '10-12 hours',
+  '24 hours',
+  '48 hours',
+  '2-4 hours',
+  '3-5 business days',
+];
+
+const SETTLEMENT_TEMPLATES = [
+  {
+    label: 'Standard Clearing',
+    getText: (tf) => `This transaction is confirmed and marked as completed. Funds hold a standard clearing timeframe of ${tf || '10 to 12 hours'} before they are finalized and settled into your account balance.`,
+  },
+  {
+    label: 'Security Clearance',
+    getText: (tf) => `Your transaction has completed initial network verification. In accordance with security clearing protocols, funds are subject to a ${tf || '10 to 12 hours'} clearing window prior to release into available balance.`,
+  },
+  {
+    label: 'Crypto Network Confirmation',
+    getText: (tf) => `Deposit successfully received on the network. Internal ledger settlement will conclude within ${tf || '10 to 12 hours'}, after which your available balance will update automatically.`,
+  },
 ];
 
 function emptyTx() {
@@ -64,6 +87,8 @@ function emptyTx() {
     label: '',
     amount: '',
     status: 'completed',
+    settlementTimeframe: '10-12 hours',
+    settlementMessage: '',
     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
     tag: 'deposit',
     color: '#10b981',
@@ -93,7 +118,18 @@ function ConfirmModal({ open, message, onConfirm, onCancel }) {
 function TxFormModal({ open, tx, onSave, onClose }) {
   const [form, setForm] = useState(tx || emptyTx());
 
-  useEffect(() => { setForm(tx || emptyTx()); }, [tx, open]);
+  useEffect(() => {
+    if (tx) {
+      setForm({
+        ...emptyTx(),
+        ...tx,
+        settlementTimeframe: tx.settlementTimeframe || '10-12 hours',
+        settlementMessage: tx.settlementMessage || '',
+      });
+    } else {
+      setForm(emptyTx());
+    }
+  }, [tx, open]);
 
   if (!open) return null;
 
@@ -126,7 +162,12 @@ function TxFormModal({ open, tx, onSave, onClose }) {
         cleanAmount = '+' + cleanAmount;
       }
     }
-    onSave({ ...form, amount: cleanAmount });
+    onSave({
+      ...form,
+      amount: cleanAmount,
+      settlementTimeframe: form.settlementTimeframe?.trim() || (form.status === 'completed_settling' ? '10-12 hours' : ''),
+      settlementMessage: form.settlementMessage?.trim() || '',
+    });
   }
 
   const labelStyle = { fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(148,163,184,0.7)', marginBottom: '6px', display: 'block' };
@@ -135,14 +176,18 @@ function TxFormModal({ open, tx, onSave, onClose }) {
   return (
     <div className="admin-panel fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 rounded-2xl p-6 w-full max-w-sm" style={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-        <h3 className="text-base font-bold text-white mb-5">{tx ? 'Edit Transaction' : 'Add Transaction'}</h3>
+      <div className="relative z-10 rounded-2xl p-6 w-full max-w-lg max-h-[92vh] overflow-y-auto" style={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-white">{tx ? 'Edit Transaction' : 'Add Transaction'}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors text-lg leading-none">✕</button>
+        </div>
 
         <div className="space-y-4">
           <div>
-            <label style={labelStyle}>Label</label>
-            <input style={inputStyle} value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Salary Deposit" />
+            <label style={labelStyle}>Label / Description</label>
+            <input style={inputStyle} value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Salary Deposit, BTC Deposit, Wire Transfer" />
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>Type</label>
@@ -157,12 +202,138 @@ function TxFormModal({ open, tx, onSave, onClose }) {
               </select>
             </div>
           </div>
+
+          {/* Settlement Configuration Card (Shown when completed_settling is active) */}
           {form.status === 'completed_settling' && (
-            <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-[11px] text-teal-300 flex items-center gap-2">
-              <span>⏱️</span>
-              <span>Displays as <strong>Completed (Settling)</strong> on user devices with a <strong>10–12 hour</strong> clearing timeframe notice.</span>
+            <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/30 space-y-3.5 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-teal-400 text-sm animate-pulse">⏱️</span>
+                  <span className="text-xs font-bold text-teal-300">Settlement Modal & Timeframe Settings</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-bold border border-teal-500/30">
+                  {form.settlementTimeframe || '10-12 hours'} Hold
+                </span>
+              </div>
+
+              {/* Timeframe selector & custom input */}
+              <div>
+                <label style={labelStyle}>Settlement Timeframe</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {SETTLEMENT_TIMEFRAMES.map(tf => (
+                    <button
+                      key={tf}
+                      type="button"
+                      onClick={() => {
+                        const currentTf = form.settlementTimeframe;
+                        let updatedMsg = form.settlementMessage;
+                        if (updatedMsg && currentTf && updatedMsg.includes(currentTf)) {
+                          updatedMsg = updatedMsg.replaceAll(currentTf, tf);
+                        }
+                        setForm(f => ({ ...f, settlementTimeframe: tf, settlementMessage: updatedMsg }));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                        form.settlementTimeframe === tf
+                          ? 'bg-teal-500 text-slate-950 shadow-sm font-bold'
+                          : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  style={inputStyle}
+                  value={form.settlementTimeframe || ''}
+                  onChange={e => setForm(f => ({ ...f, settlementTimeframe: e.target.value }))}
+                  placeholder="e.g. 10-12 hours, 24 hours, 3-5 days"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Displays on the user's status badge, hold tag, and clearance countdown.
+                </p>
+              </div>
+
+              {/* Written modal message by Admin */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Receipt Modal Message (Written by Admin)</label>
+                  <span className="text-[10px] text-slate-500">{(form.settlementMessage || '').length}/1000</span>
+                </div>
+
+                {/* Templates */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {SETTLEMENT_TEMPLATES.map(tpl => (
+                    <button
+                      key={tpl.label}
+                      type="button"
+                      onClick={() => {
+                        const text = tpl.getText(form.settlementTimeframe || '10 to 12 hours');
+                        setForm(f => ({ ...f, settlementMessage: text }));
+                      }}
+                      className="px-2 py-1 rounded-md text-[10px] font-medium bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700 transition-colors"
+                    >
+                      + {tpl.label}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical', minHeight: '80px', lineHeight: '1.45' }}
+                  value={form.settlementMessage || ''}
+                  onChange={e => setForm(f => ({ ...f, settlementMessage: e.target.value }))}
+                  placeholder="Write the custom message the user will read when tapping this transaction receipt..."
+                />
+              </div>
+
+              {/* Live Preview */}
+              <div className="p-3 rounded-xl bg-black/40 border border-teal-500/20 text-left">
+                <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5 font-bold uppercase tracking-wider">
+                  <span>User Receipt Modal Preview</span>
+                  <span className="text-teal-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" />
+                    Live
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-teal-400 text-sm mt-0.5">⏱️</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <p className="text-[11px] font-bold text-teal-300">Completed • Settlement In Progress</p>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                        {form.settlementTimeframe || '10–12 Hours'} Hold
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 mt-1 leading-relaxed whitespace-pre-line">
+                      {form.settlementMessage?.trim() || `This transaction is confirmed and marked as completed. Funds hold a standard clearing timeframe of ${form.settlementTimeframe || '10 to 12 hours'} before they are finalized and settled into your account balance.`}
+                    </p>
+                    <div className="mt-2 p-1.5 rounded-lg bg-black/30 border border-teal-500/15 flex items-center justify-between text-[9px]">
+                      <span className="text-slate-400">Estimated Settlement:</span>
+                      <span className="font-bold text-teal-300">Within {form.settlementTimeframe || '10–12 Hours'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Optional notice for other statuses */}
+          {form.status !== 'completed_settling' && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Custom Receipt Modal Notice (Optional)</label>
+                <span className="text-[10px] text-slate-500">{(form.settlementMessage || '').length}/1000</span>
+              </div>
+              <textarea
+                rows={2}
+                style={{ ...inputStyle, resize: 'vertical', minHeight: '60px', fontSize: '12px' }}
+                value={form.settlementMessage || ''}
+                onChange={e => setForm(f => ({ ...f, settlementMessage: e.target.value }))}
+                placeholder="Optional custom message displayed inside the receipt modal when the user opens this transaction..."
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>Amount</label>
@@ -181,9 +352,9 @@ function TxFormModal({ open, tx, onSave, onClose }) {
           <button
             onClick={handleSave}
             disabled={!form.label.trim() || !form.amount.trim()}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all shadow-md"
             style={{ background: form.label.trim() && form.amount.trim() ? 'linear-gradient(135deg, #06B6D4, #6366F1)' : 'rgba(6,182,212,0.2)', cursor: form.label.trim() && form.amount.trim() ? 'pointer' : 'not-allowed' }}
-          >Save</button>
+          >Save Transaction</button>
         </div>
       </div>
     </div>
@@ -227,6 +398,14 @@ function UsersTab({ onRefresh }) {
   const [inactiveMsgSaved, setInactiveMsgSaved] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
 
+  // Auto top-up state
+  const [autoTopUpEnabled, setAutoTopUpEnabled] = useState(false);
+  const [autoTopUpAmount, setAutoTopUpAmount] = useState('100');
+  const [autoTopUpIntervalMinutes, setAutoTopUpIntervalMinutes] = useState('60');
+  const [autoTopUpDescription, setAutoTopUpDescription] = useState('Auto Balance Top-Up');
+  const [autoTopUpSaved, setAutoTopUpSaved] = useState(false);
+  const [triggeringTopUp, setTriggeringTopUp] = useState(false);
+
   const reload = useCallback(async () => {
     try {
       const data = await authApi.getUsers();
@@ -237,6 +416,12 @@ function UsersTab({ onRefresh }) {
         sendReviewPopupEnabled: Boolean(user.sendReviewPopupEnabled),
         sendReviewPopupMessage: user.sendReviewPopupMessage || '',
         inactiveMessage: user.inactiveMessage || '',
+        autoTopUpEnabled: Boolean(user.autoTopUpEnabled),
+        autoTopUpAmount: user.autoTopUpAmount ?? 100,
+        autoTopUpIntervalMinutes: user.autoTopUpIntervalMinutes ?? 60,
+        autoTopUpDescription: user.autoTopUpDescription || 'Auto Balance Top-Up',
+        lastTopUpAt: user.lastTopUpAt || null,
+        nextTopUpAt: user.nextTopUpAt || null,
       })));
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -278,6 +463,13 @@ function UsersTab({ onRefresh }) {
        setSendReviewMsgSaved(false);
        setInactiveMsg(editUser.inactiveMessage || '');
        setInactiveMsgSaved(false);
+
+       // Auto top-up config
+       setAutoTopUpEnabled(Boolean(editUser.autoTopUpEnabled));
+       setAutoTopUpAmount(String(editUser.autoTopUpAmount ?? 100));
+       setAutoTopUpIntervalMinutes(String(editUser.autoTopUpIntervalMinutes ?? 60));
+       setAutoTopUpDescription(editUser.autoTopUpDescription || 'Auto Balance Top-Up');
+       setAutoTopUpSaved(false);
     }
   }, [editUser]);
 
@@ -612,6 +804,75 @@ function UsersTab({ onRefresh }) {
     }
   }
 
+  async function handleToggleAutoTopUp() {
+    if (!editUser) return;
+    const nextState = !autoTopUpEnabled;
+    setAutoTopUpEnabled(nextState);
+    try {
+      const payload = {
+        autoTopUpEnabled: nextState,
+        autoTopUpAmount: parseFloat(autoTopUpAmount) || 100,
+        autoTopUpIntervalMinutes: parseInt(autoTopUpIntervalMinutes, 10) || 60,
+        autoTopUpDescription: autoTopUpDescription.trim() || 'Auto Balance Top-Up',
+      };
+      const res = await authApi.updateAutoTopUp(editUser.email, payload);
+      const updated = { ...editUser, ...res };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to toggle auto top-up:', err);
+      alert('Failed to toggle auto top-up: ' + err.message);
+      setAutoTopUpEnabled(!nextState);
+    }
+  }
+
+  async function handleSaveAutoTopUp() {
+    if (!editUser) return;
+    try {
+      const payload = {
+        autoTopUpEnabled,
+        autoTopUpAmount: parseFloat(autoTopUpAmount) || 100,
+        autoTopUpIntervalMinutes: parseInt(autoTopUpIntervalMinutes, 10) || 60,
+        autoTopUpDescription: autoTopUpDescription.trim() || 'Auto Balance Top-Up',
+      };
+      const res = await authApi.updateAutoTopUp(editUser.email, payload);
+      const updated = { ...editUser, ...res };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      setAutoTopUpSaved(true);
+      setTimeout(() => setAutoTopUpSaved(false), 2000);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save auto top-up:', err);
+      alert('Failed to save auto top-up: ' + err.message);
+    }
+  }
+
+  async function handleTriggerTopUpNow() {
+    if (!editUser) return;
+    setTriggeringTopUp(true);
+    try {
+      const res = await authApi.triggerAutoTopUp(editUser.email);
+      const updated = {
+        ...editUser,
+        balanceUsd: res.newBalance ?? (editUser.balanceUsd + (res.addedAmount || 0)),
+        lastTopUpAt: res.lastTopUpAt || new Date().toISOString(),
+        nextTopUpAt: res.nextTopUpAt || null,
+      };
+      setBalanceUsd(String(updated.balanceUsd));
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      alert(res.message || `Successfully credited $${res.addedAmount} to ${editUser.fullName || editUser.email}!`);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to run manual top-up:', err);
+      alert('Failed to run top-up: ' + err.message);
+    } finally {
+      setTriggeringTopUp(false);
+    }
+  }
+
   async function handleDeleteUser() {
     if (!editUser) return;
     try {
@@ -663,9 +924,17 @@ function UsersTab({ onRefresh }) {
                   <p className="text-sm font-semibold text-slate-200 truncate">{u.fullName || 'Unnamed'}</p>
                   <p className="text-xs text-slate-500 truncate">{u.email}</p>
                 </div>
-                <span className="text-xs font-semibold text-slate-400 flex-shrink-0">
-                  ${(u.balanceUsd ?? 0).toLocaleString()}
-                </span>
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <span className="text-xs font-semibold text-slate-400">
+                    ${(u.balanceUsd ?? 0).toLocaleString()}
+                  </span>
+                  {u.autoTopUpEnabled && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 mt-0.5">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                      Auto +${u.autoTopUpAmount || 100}
+                    </span>
+                  )}
+                </div>
               </button>
             ))
           )}
@@ -1048,6 +1317,230 @@ function UsersTab({ onRefresh }) {
                   <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Save Balance Changes</>
                 )}
               </button>
+            </div>
+
+            {/* Auto Top-Up Balance (Admin per-user schedule & amount) */}
+            <div
+              className="rounded-xl p-5 mb-5 transition-all"
+              style={{
+                background: autoTopUpEnabled ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                border: autoTopUpEnabled ? '1px solid rgba(16, 185, 129, 0.28)' : '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: autoTopUpEnabled ? '0 10px 30px -10px rgba(16, 185, 129, 0.15)' : 'none',
+              }}
+            >
+              {/* Header with toggle */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm"
+                    style={{
+                      background: autoTopUpEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                      border: autoTopUpEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: autoTopUpEnabled ? '#10B981' : '#94A3B8',
+                    }}
+                  >
+                    <svg className={`w-4 h-4 ${autoTopUpEnabled ? 'animate-spin' : ''}`} style={{ animationDuration: '8s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+                        Auto Top-Up Balance
+                      </h4>
+                      {autoTopUpEnabled ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                          Disabled
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Automatically credits this user's balance on a recurring schedule in MongoDB.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Toggle Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleAutoTopUp}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 hover:brightness-105 active:scale-[0.98]"
+                  style={{
+                    background: autoTopUpEnabled
+                      ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                      : 'linear-gradient(135deg, #10b981, #059669)',
+                  }}
+                >
+                  {autoTopUpEnabled ? 'Turn Auto Top-Up OFF' : 'Turn Auto Top-Up ON'}
+                </button>
+              </div>
+
+              {/* Amount & Description Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                {/* Amount */}
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+                    Amount per Top-Up
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 text-sm font-bold">$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={autoTopUpAmount}
+                      onChange={e => { setAutoTopUpAmount(e.target.value); setAutoTopUpSaved(false); }}
+                      placeholder="100.00"
+                      className="w-full pl-8 pr-3 py-2.5 rounded-xl text-sm font-semibold text-white focus:outline-none transition-all"
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(16,185,129,0.25)',
+                      }}
+                    />
+                  </div>
+                  {/* Quick amount presets */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[50, 100, 250, 500, 1000].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => { setAutoTopUpAmount(String(val)); setAutoTopUpSaved(false); }}
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all hover:bg-emerald-500/20"
+                        style={{
+                          background: Number(autoTopUpAmount) === val ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.04)',
+                          color: Number(autoTopUpAmount) === val ? '#34d399' : '#94a3b8',
+                          border: Number(autoTopUpAmount) === val ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        +${val}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Description label for transactions */}
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+                    Transaction History Description
+                  </label>
+                  <input
+                    type="text"
+                    value={autoTopUpDescription}
+                    onChange={e => { setAutoTopUpDescription(e.target.value); setAutoTopUpSaved(false); }}
+                    placeholder="Auto Balance Top-Up"
+                    className="w-full px-3 py-2.5 rounded-xl text-xs text-white focus:outline-none transition-all"
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                    }}
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1.5">
+                    This label will appear on the user's transaction table and notifications.
+                  </p>
+                </div>
+              </div>
+
+              {/* Timer Interval Selector */}
+              <div className="mb-4">
+                <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">
+                  Timer Interval (How often to top up)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {[
+                    { label: '10 Mins (Test)', value: 10 },
+                    { label: '30 Mins', value: 30 },
+                    { label: 'Every 1 Hour', value: 60 },
+                    { label: 'Every 6 Hours', value: 360 },
+                    { label: 'Every 12 Hours', value: 720 },
+                    { label: 'Every 24 Hours', value: 1440 },
+                  ].map(item => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => { setAutoTopUpIntervalMinutes(String(item.value)); setAutoTopUpSaved(false); }}
+                      className="px-2.5 py-2 rounded-xl text-xs font-semibold transition-all text-center"
+                      style={{
+                        background: Number(autoTopUpIntervalMinutes) === item.value ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.03)',
+                        color: Number(autoTopUpIntervalMinutes) === item.value ? '#10b981' : '#94a3b8',
+                        border: Number(autoTopUpIntervalMinutes) === item.value ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2.5 flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400">Or custom interval (in minutes):</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={autoTopUpIntervalMinutes}
+                    onChange={e => { setAutoTopUpIntervalMinutes(e.target.value); setAutoTopUpSaved(false); }}
+                    className="w-24 px-2.5 py-1 rounded-lg text-xs text-white focus:outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
+                  />
+                  <span className="text-[11px] text-slate-500">minutes</span>
+                </div>
+              </div>
+
+              {/* Schedule status preview */}
+              {autoTopUpEnabled && (
+                <div className="mb-4 p-3 rounded-xl bg-black/25 border border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400">⏱️</span>
+                    <span className="text-slate-300">
+                      Next top-up: <strong className="text-emerald-300">{editUser.nextTopUpAt ? new Date(editUser.nextTopUpAt).toLocaleString() : 'Scheduling on save...'}</strong>
+                    </span>
+                  </div>
+                  {editUser.lastTopUpAt && (
+                    <span className="text-slate-500 text-[11px]">
+                      Last run: {new Date(editUser.lastTopUpAt).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons: Save Settings + Immediate Run Now */}
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={handleSaveAutoTopUp}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 active:scale-[0.99]"
+                  style={{
+                    background: autoTopUpSaved
+                      ? 'linear-gradient(135deg, #10b981, #059669)'
+                      : 'linear-gradient(135deg, #06B6D4, #3B82F6)',
+                  }}
+                >
+                  {autoTopUpSaved ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                      Saved to Database!
+                    </>
+                  ) : (
+                    'Save Auto Top-Up Settings'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTriggerTopUpNow}
+                  disabled={triggeringTopUp}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm hover:brightness-110 active:scale-[0.99] border border-amber-500/30"
+                  style={{
+                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                  }}
+                  title="Immediately credit the top-up amount right now for testing"
+                >
+                  <span>⚡</span>
+                  <span>{triggeringTopUp ? 'Crediting...' : 'Run Top-Up Now (Test)'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Per-user BTC wallet address */}
@@ -1489,7 +1982,7 @@ function TransactionsTab() {
                       </td>
                       <td className="px-5 py-3.5">
                         <Badge
-                          text={tx.status === 'completed_settling' ? 'Completed (Settling 10-12h)' : tx.status}
+                          text={tx.status === 'completed_settling' ? `Completed (${tx.settlementTimeframe || '10-12h'} Settling)` : tx.status}
                           color={
                             tx.status === 'completed'
                               ? '#10b981'

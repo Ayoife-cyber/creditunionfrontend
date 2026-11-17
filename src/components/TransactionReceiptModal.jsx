@@ -5,7 +5,7 @@ import { useRef } from 'react';
 
 const STATUS_STYLE = {
   completed:          { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)', color: '#10B981', label: 'Completed (Settled)' },
-  completed_settling: { bg: 'rgba(20,184,166,0.12)', border: 'rgba(20,184,166,0.3)',  color: '#14B8A6', label: 'Completed (Settling 10-12h)' },
+  completed_settling: { bg: 'rgba(20,184,166,0.12)', border: 'rgba(20,184,166,0.3)',  color: '#14B8A6', label: 'Completed (Settling)' },
   pending:            { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',  color: '#F59E0B', label: 'Pending' },
   processing:         { bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.25)',  color: '#06B6D4', label: 'Processing' },
   failed:             { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   color: '#EF4444', label: 'Failed' },
@@ -31,6 +31,16 @@ export default function TransactionReceiptModal({ tx, onClose }) {
   const status = STATUS_STYLE[tx.status] || STATUS_STYLE.completed;
   const ref    = generateRef(tx.id);
   const icon   = TYPE_ICON[tx.type] || TYPE_ICON.deposit;
+
+  // Custom settlement timeframe & written modal message from admin
+  const settlementTimeframe = (tx.settlementTimeframe && String(tx.settlementTimeframe).trim()) || '10–12 Hours';
+  const defaultSettlingMsg = `This transaction is confirmed and marked as completed. Funds hold a standard clearing timeframe of ${settlementTimeframe} before they are finalized and settled into your account balance.`;
+  const settlementMessage = (tx.settlementMessage && String(tx.settlementMessage).trim()) || defaultSettlingMsg;
+
+  // Dynamic status badge label
+  const statusBadgeLabel = tx.status === 'completed_settling'
+    ? `COMPLETED (SETTLING ${settlementTimeframe.toUpperCase()})`
+    : status.label;
 
   // ONLY withdrawal is debit; crypto, deposits, swaps, etc. are ALWAYS credit!
   const isDebit = tx.type === 'withdrawal' || tx.tag === 'withdrawal';
@@ -61,12 +71,13 @@ export default function TransactionReceiptModal({ tx, onClose }) {
     doc.text('Transaction Receipt', W / 2, 54, { align: 'center' });
 
     // Status badge area
+    const badgeText = tx.status === 'completed_settling' ? `COMPLETED (${settlementTimeframe.toUpperCase()} HOLD)` : tx.status.toUpperCase();
     doc.setFillColor(isCredit ? 16 : 239, isCredit ? 185 : 68, isCredit ? 129 : 68, 0.15);
-    doc.roundedRect(W / 2 - 50, 88, 100, 22, 4, 4, 'F');
+    doc.roundedRect(W / 2 - 70, 88, 140, 22, 4, 4, 'F');
     doc.setTextColor(isCredit ? 16 : 239, isCredit ? 185 : 68, isCredit ? 129 : 68);
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(tx.status.toUpperCase(), W / 2, 103, { align: 'center' });
+    doc.text(badgeText, W / 2, 103, { align: 'center' });
 
     // Amount
     doc.setTextColor(isCredit ? 16 : 239, isCredit ? 185 : 68, isCredit ? 129 : 68);
@@ -84,8 +95,8 @@ export default function TransactionReceiptModal({ tx, onClose }) {
       ['Description',    tx.label],
       ['Type',           tx.type.charAt(0).toUpperCase() + tx.type.slice(1)],
       ['Date & Time',    tx.date],
-      ['Status',         status.label],
-      ...(tx.status === 'completed_settling' ? [['Settlement Window', '10-12 Hours (Clearing in progress)']] : []),
+      ['Status',         tx.status === 'completed_settling' ? `Completed (Settling • ${settlementTimeframe})` : status.label],
+      ...(tx.status === 'completed_settling' ? [['Settlement Window', `${settlementTimeframe} (Clearing in progress)`]] : []),
     ];
 
     let y = 185;
@@ -99,6 +110,21 @@ export default function TransactionReceiptModal({ tx, onClose }) {
       doc.text(String(value), W - 50, y, { align: 'right' });
       y += 26;
     });
+
+    // If settling notice present, write notice block in PDF
+    if (tx.status === 'completed_settling' && settlementMessage) {
+      doc.setFillColor(20, 184, 166, 0.08);
+      doc.roundedRect(40, y + 5, W - 80, 44, 4, 4, 'F');
+      doc.setFontSize(7.5);
+      doc.setTextColor(20, 184, 166);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`SETTLEMENT NOTICE (${settlementTimeframe}):`, 50, y + 20);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      const splitText = doc.splitTextToSize(settlementMessage, W - 100);
+      doc.text(splitText, 50, y + 32);
+      y += 55;
+    }
 
     // Footer
     doc.setDrawColor(30, 41, 59);
@@ -163,7 +189,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
               className="mt-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
               style={{ background: status.bg, border: `1px solid ${status.border}`, color: status.color }}
             >
-              {status.label}
+              {statusBadgeLabel}
             </div>
 
             {/* Status explanation alert */}
@@ -176,7 +202,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
                 <div>
                   <p className="text-xs font-bold text-cyan-300">Transaction In Progress</p>
                   <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                    This transaction is currently processing on the network. Funds will reflect in your account balance once confirmations are complete.
+                    {tx.settlementMessage && tx.settlementMessage.trim() ? tx.settlementMessage : 'This transaction is currently processing on the network. Funds will reflect in your account balance once confirmations are complete.'}
                   </p>
                 </div>
               </div>
@@ -191,7 +217,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
                 <div>
                   <p className="text-xs font-bold text-amber-300">Awaiting Clearance</p>
                   <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                    This transaction is pending administrative review or network clearance. You will be notified once settled.
+                    {tx.settlementMessage && tx.settlementMessage.trim() ? tx.settlementMessage : 'This transaction is pending administrative review or network clearance. You will be notified once settled.'}
                   </p>
                 </div>
               </div>
@@ -206,7 +232,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
                 <div>
                   <p className="text-xs font-bold text-red-300">Transaction Failed</p>
                   <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                    This transaction could not be completed. If funds were deducted, please contact customer support.
+                    {tx.settlementMessage && tx.settlementMessage.trim() ? tx.settlementMessage : 'This transaction could not be completed. If funds were deducted, please contact customer support.'}
                   </p>
                 </div>
               </div>
@@ -219,15 +245,15 @@ export default function TransactionReceiptModal({ tx, onClose }) {
               >
                 <div className="flex items-start gap-2.5">
                   <span className="text-teal-400 text-sm mt-0.5 animate-pulse">⏱️</span>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                       <p className="text-xs font-bold text-teal-300">Completed • Settlement In Progress</p>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                        10–12 Hours Hold
+                        {settlementTimeframe} Hold
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                      This transaction is confirmed and marked as completed. Funds hold a standard clearing timeframe of <strong>10 to 12 hours</strong> before they are finalized and settled into your account balance.
+                    <p className="text-[11px] text-slate-300 mt-1 leading-relaxed whitespace-pre-line">
+                      {settlementMessage}
                     </p>
                   </div>
                 </div>
@@ -235,7 +261,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
                   <span className="text-slate-400 font-medium">Estimated Settlement:</span>
                   <span className="font-bold text-teal-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping"></span>
-                    Within 10–12 Hours
+                    Within {settlementTimeframe}
                   </span>
                 </div>
               </div>
@@ -250,7 +276,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
                 <div>
                   <p className="text-xs font-bold text-emerald-300">Transaction Settled</p>
                   <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                    This transaction was successfully verified and fully settled into your account.
+                    {tx.settlementMessage && tx.settlementMessage.trim() ? tx.settlementMessage : 'This transaction was successfully verified and fully settled into your account.'}
                   </p>
                 </div>
               </div>
@@ -263,7 +289,7 @@ export default function TransactionReceiptModal({ tx, onClose }) {
               { label: 'Reference',  value: ref },
               { label: 'Type',       value: tx.type.charAt(0).toUpperCase() + tx.type.slice(1) },
               { label: 'Date',       value: tx.date },
-              ...(tx.status === 'completed_settling' ? [{ label: 'Settlement Window', value: '10–12 Hours (Hold in progress)' }] : []),
+              ...(tx.status === 'completed_settling' ? [{ label: 'Settlement Window', value: `${settlementTimeframe} (Hold in progress)` }] : []),
               { label: 'Direction',  value: isCredit ? 'Credit (incoming)' : 'Debit (outgoing)' },
             ].map(({ label, value }) => (
               <div
