@@ -7,6 +7,7 @@ import MobileNav from './MobileNav.jsx';
 import TopBar from './TopBar.jsx';
 import { authApi } from '../api/client.js';
 import AccountInactiveModal from './AccountInactiveModal.jsx';
+import PolicyNoticeModal from './PolicyNoticeModal.jsx';
 
 export default function AppLayout({ title, children, onSidebarAction }) {
   const navigate  = useNavigate();
@@ -15,6 +16,20 @@ export default function AppLayout({ title, children, onSidebarAction }) {
   const [notifications, setNotifications] = useState([]);
   const [hasUnread, setHasUnread] = useState(true);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [policyNoticeDismissed, setPolicyNoticeDismissed] = useState(() => {
+    try {
+      const key = `policy_notice_closed_${user?.email || user?.id || 'current'}`;
+      return sessionStorage.getItem(key) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (!user?.policyNoticeEnabled) {
+      setPolicyNoticeDismissed(false);
+    }
+  }, [user?.policyNoticeEnabled]);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,6 +188,14 @@ export default function AppLayout({ title, children, onSidebarAction }) {
         onLogout={logout}
         onSpecialAction={resolvedSpecialAction}
       />
+
+      {/* Admin Written Operational Policy & Maintenance Overlay Modal */}
+      {user?.status !== 'inactive' && user?.policyNoticeEnabled && !policyNoticeDismissed && (
+        <PolicyNoticeModal
+          user={user}
+          onClose={() => setPolicyNoticeDismissed(true)}
+        />
+      )}
 
       {/* Admin Written Inactive Account Popup Modal */}
       {user?.status === 'inactive' && (

@@ -12,6 +12,7 @@ import DepositModal from '../components/DepositModal.jsx';
 import AccountInfoModal from '../components/AccountInfoModal.jsx';
 import ComingSoonModal from '../components/ComingSoonModal.jsx';
 import SupportTicketDrawer from '../components/SupportTicketDrawer.jsx';
+import PolicyNoticeModal from '../components/PolicyNoticeModal.jsx';
 import Toast from '../components/Toast.jsx';
 import DashboardSkeleton from '../components/DashboardSkeleton.jsx';
 import SendMoneyModal from '../components/SendMoneyModal.jsx';
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const [comingSoonTitle, setComingSoonTitle] = useState('');
   const [comingSoonMessage, setComingSoonMessage] = useState('');
   const [supportTicketOpen, setSupportTicketOpen] = useState(false);
+  const [policyNoticeManualOpen, setPolicyNoticeManualOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [selectedAction, setSelectedAction] = useState('withdraw');
   const toastTimeoutRef = useRef(null);
@@ -143,6 +145,37 @@ export default function Dashboard() {
         <DashboardSkeleton />
       ) : (
       <div className="px-4 lg:px-8 py-6 space-y-6 max-w-6xl mx-auto">
+        {user?.policyNoticeEnabled && (
+          <div
+            className="p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs animate-fadeIn"
+            style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-amber-400 text-sm flex-shrink-0 animate-pulse">🛠️</span>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-100 text-xs truncate">
+                  {user.policyNoticeTitle || 'Operational Policy & Account Maintenance Notice Active'}
+                </p>
+                <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                  Administrative advisory active for your account • Operations ongoing
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPolicyNoticeManualOpen(true)}
+              className="px-3 py-1.5 rounded-xl text-[11px] font-bold text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/35 transition-all flex-shrink-0 flex items-center gap-1.5"
+            >
+              <span>View Notice</span>
+              <span>→</span>
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <BalanceCard
             user={user}
@@ -288,6 +321,12 @@ export default function Dashboard() {
       />
       <ComingSoonModal open={comingSoonOpen} onClose={() => { setComingSoonOpen(false); setComingSoonMessage(''); }} title={comingSoonTitle} message={comingSoonMessage || undefined} />
       <SupportTicketDrawer open={supportTicketOpen} onClose={() => setSupportTicketOpen(false)} />
+      {policyNoticeManualOpen && (
+        <PolicyNoticeModal
+          user={user}
+          onClose={() => setPolicyNoticeManualOpen(false)}
+        />
+      )}
       <Toast toast={toast} />
     </AppLayout>
   );

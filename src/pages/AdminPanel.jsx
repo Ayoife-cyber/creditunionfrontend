@@ -80,6 +80,33 @@ const SETTLEMENT_TEMPLATES = [
   },
 ];
 
+const POLICY_NOTICE_PRESETS = [
+  {
+    type: 'maintenance',
+    label: '🛠️ Scheduled Maintenance',
+    title: 'System Maintenance in Progress',
+    text: 'Our core banking network is currently undergoing scheduled system maintenance to enhance transaction throughput and platform security. Daily operations, monitoring, and balance functions remain accessible. Certain transfers or settlement confirmations may experience brief processing windows. Your account balances and funds remain 100% secure.',
+  },
+  {
+    type: 'policy',
+    label: '📜 Operational Policy',
+    title: 'Account Operational Policy Notice',
+    text: 'Please review the updated operational policy regarding your account: In accordance with standard international banking clearance and compliance protocols, fund deposits and withdrawals follow structured clearing cycles. Account holders must ensure valid verification records are maintained. You may dismiss this notice and continue operating your account.',
+  },
+  {
+    type: 'advisory',
+    label: '⚠️ Platform Advisory',
+    title: 'Account Advisory & Verification Update',
+    text: 'Administrative advisory regarding platform operations: All account balances and active positions are actively synchronized. Please ensure your contact details remain up to date. For expedited transaction settlement or special inquiries, please reach out to dedicated account support.',
+  },
+  {
+    type: 'urgent',
+    label: '🚨 Priority Notice',
+    title: 'Priority Administrative Notice',
+    text: 'Important administrative notice: Critical operational maintenance is currently taking place. Transactions may require secondary clearance confirmation before settling into your account balance. Please acknowledge this advisory to proceed.',
+  },
+];
+
 function emptyTx() {
   return {
     id: null,
@@ -406,6 +433,15 @@ function UsersTab({ onRefresh }) {
   const [autoTopUpSaved, setAutoTopUpSaved] = useState(false);
   const [triggeringTopUp, setTriggeringTopUp] = useState(false);
 
+  // Operational Policy & Maintenance Notice overlay popup state
+  const [policyNoticeEnabled, setPolicyNoticeEnabled] = useState(false);
+  const [policyNoticeTitle, setPolicyNoticeTitle] = useState('');
+  const [policyNoticeMessage, setPolicyNoticeMessage] = useState('');
+  const [policyNoticeType, setPolicyNoticeType] = useState('maintenance');
+  const [policyNoticeSaved, setPolicyNoticeSaved] = useState(false);
+  const [policyNoticeLoading, setPolicyNoticeLoading] = useState(false);
+  const [policyNoticeBroadcasted, setPolicyNoticeBroadcasted] = useState(false);
+
   const reload = useCallback(async () => {
     try {
       const data = await authApi.getUsers();
@@ -422,6 +458,10 @@ function UsersTab({ onRefresh }) {
         autoTopUpDescription: user.autoTopUpDescription || 'Auto Balance Top-Up',
         lastTopUpAt: user.lastTopUpAt || null,
         nextTopUpAt: user.nextTopUpAt || null,
+        policyNoticeEnabled: Boolean(user.policyNoticeEnabled),
+        policyNoticeTitle: user.policyNoticeTitle || 'Operational Policy & Account Maintenance Notice',
+        policyNoticeMessage: user.policyNoticeMessage || '',
+        policyNoticeType: user.policyNoticeType || 'maintenance',
       })));
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -470,6 +510,14 @@ function UsersTab({ onRefresh }) {
        setAutoTopUpIntervalMinutes(String(editUser.autoTopUpIntervalMinutes ?? 60));
        setAutoTopUpDescription(editUser.autoTopUpDescription || 'Auto Balance Top-Up');
        setAutoTopUpSaved(false);
+
+       // Policy & Maintenance Notice config
+       setPolicyNoticeEnabled(Boolean(editUser.policyNoticeEnabled));
+       setPolicyNoticeTitle(editUser.policyNoticeTitle || 'Operational Policy & Account Maintenance Notice');
+       setPolicyNoticeMessage(editUser.policyNoticeMessage || '');
+       setPolicyNoticeType(editUser.policyNoticeType || 'maintenance');
+       setPolicyNoticeSaved(false);
+       setPolicyNoticeBroadcasted(false);
     }
   }, [editUser]);
 
@@ -873,6 +921,61 @@ function UsersTab({ onRefresh }) {
     }
   }
 
+  async function handleTogglePolicyNotice() {
+    if (!editUser) return;
+    const nextState = !policyNoticeEnabled;
+    setPolicyNoticeEnabled(nextState);
+    try {
+      const payload = {
+        policyNoticeEnabled: nextState,
+        policyNoticeTitle: policyNoticeTitle.trim() || 'Operational Policy & Account Maintenance Notice',
+        policyNoticeMessage: policyNoticeMessage.trim(),
+        policyNoticeType: policyNoticeType || 'maintenance',
+      };
+      const res = await authApi.updatePolicyNotice(editUser.email, payload);
+      const updated = { ...editUser, ...res };
+      setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+      setEditUser(updated);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to toggle policy notice:', err);
+      alert('Failed to toggle policy notice: ' + err.message);
+      setPolicyNoticeEnabled(!nextState);
+    }
+  }
+
+  async function handleSavePolicyNotice(applyToAll = false) {
+    if (!editUser) return;
+    setPolicyNoticeLoading(true);
+    try {
+      const payload = {
+        policyNoticeEnabled,
+        policyNoticeTitle: policyNoticeTitle.trim() || 'Operational Policy & Account Maintenance Notice',
+        policyNoticeMessage: policyNoticeMessage.trim(),
+        policyNoticeType: policyNoticeType || 'maintenance',
+        applyToAll,
+      };
+      const res = await authApi.updatePolicyNotice(editUser.email, payload);
+      const updated = { ...editUser, ...res };
+      if (applyToAll) {
+        setUsers(prev => prev.map(u => ({ ...u, ...res })));
+        setPolicyNoticeBroadcasted(true);
+        setTimeout(() => setPolicyNoticeBroadcasted(false), 2500);
+      } else {
+        setUsers(prev => prev.map(u => u.email === editUser.email ? updated : u));
+        setPolicyNoticeSaved(true);
+        setTimeout(() => setPolicyNoticeSaved(false), 2000);
+      }
+      setEditUser(updated);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save policy notice:', err);
+      alert('Failed to save policy notice: ' + err.message);
+    } finally {
+      setPolicyNoticeLoading(false);
+    }
+  }
+
   async function handleDeleteUser() {
     if (!editUser) return;
     try {
@@ -1167,6 +1270,206 @@ function UsersTab({ onRefresh }) {
                   >
                     {sendReviewMsgSaved ? 'Saved!' : 'Save Review Modal Message'}
                   </button>
+                </div>
+              </div>
+
+              {/* Dashboard Operational Policy & Maintenance Overlay Modal Settings */}
+              <div
+                className="rounded-2xl p-5 my-5"
+                style={{
+                  background: policyNoticeEnabled ? 'rgba(245, 158, 11, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                  border: policyNoticeEnabled ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  boxShadow: policyNoticeEnabled ? '0 10px 30px rgba(245, 158, 11, 0.06)' : 'none',
+                }}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+                        <span>🛠️</span> Dashboard Policy & Maintenance Overlay Modal
+                      </h4>
+                      {policyNoticeEnabled ? (
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                          Modal ON
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/25">
+                          Modal OFF
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 max-w-xl leading-relaxed">
+                      {policyNoticeEnabled
+                        ? 'Active: When this user logs in, this modal overlays the dashboard with your written operational policy/maintenance notice. The user can manually close it and continue operating normally.'
+                        : 'Inactive: User logs into the dashboard directly without any policy/maintenance modal overlay.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTogglePolicyNotice}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-[0.99] flex-shrink-0"
+                    style={{
+                      background: policyNoticeEnabled
+                        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                        : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    }}
+                  >
+                    {policyNoticeEnabled ? 'Turn Modal Off' : 'Turn Modal On'}
+                  </button>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  {/* Notice Category / Type */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+                      Notice Category
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'maintenance', label: '🛠️ System Maintenance', color: '#f59e0b' },
+                        { id: 'policy', label: '📜 Operational Policy', color: '#14b8a6' },
+                        { id: 'advisory', label: '⚠️ Platform Advisory', color: '#06b6d4' },
+                        { id: 'urgent', label: '🚨 Priority Notice', color: '#ef4444' },
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setPolicyNoticeType(t.id);
+                            setPolicyNoticeSaved(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                            policyNoticeType === t.id
+                              ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                              : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Modal Title */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+                      Modal Title (Displayed in Header)
+                    </label>
+                    <input
+                      type="text"
+                      value={policyNoticeTitle}
+                      onChange={e => {
+                        setPolicyNoticeTitle(e.target.value);
+                        setPolicyNoticeSaved(false);
+                      }}
+                      placeholder="e.g. System Maintenance in Progress / Account Operational Policy"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white focus:outline-none transition-all"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}
+                    />
+                  </div>
+
+                  {/* Quick Preset Templates */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                        Admin Written Modal Content
+                      </label>
+                      <span className="text-[10px] text-slate-500">
+                        {(policyNoticeMessage || '').length}/3000 chars
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {POLICY_NOTICE_PRESETS.map(preset => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => {
+                            setPolicyNoticeType(preset.type);
+                            setPolicyNoticeTitle(preset.title);
+                            setPolicyNoticeMessage(preset.text);
+                            setPolicyNoticeSaved(false);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700 transition-colors"
+                        >
+                          + {preset.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      value={policyNoticeMessage}
+                      onChange={e => {
+                        setPolicyNoticeMessage(e.target.value);
+                        setPolicyNoticeSaved(false);
+                      }}
+                      rows={4}
+                      placeholder="Write your operational policy explanation or maintenance announcement here. Line breaks are preserved..."
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all resize-y leading-relaxed font-sans"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(245,158,11,0.25)' }}
+                    />
+                  </div>
+
+                  {/* Live User Modal Preview */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-amber-500/20 text-left">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                      <span>User Modal Preview (Overlay on Dashboard)</span>
+                      <span className="text-amber-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                        Preview
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {policyNoticeType.toUpperCase()} NOTICE
+                        </span>
+                        <span className="text-xs font-bold text-slate-200">
+                          {policyNoticeTitle || 'Operational Policy & Account Maintenance Notice'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 whitespace-pre-line leading-relaxed bg-black/30 p-2.5 rounded-lg border border-white/5">
+                        {policyNoticeMessage?.trim() || 'Our core banking network is currently undergoing scheduled system maintenance to enhance transaction throughput and platform security. Daily operations remain accessible. You may close this notice and continue operating your account.'}
+                      </p>
+                      <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+                        <span>Dismissible: Yes (user can manually close and continue)</span>
+                        <span className="text-cyan-400 font-semibold">[I Understand & Continue]</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSavePolicyNotice(false)}
+                      disabled={policyNoticeLoading}
+                      className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 active:scale-[0.99]"
+                      style={{
+                        background: policyNoticeSaved
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : 'linear-gradient(135deg, #0284c7, #06b6d4)',
+                      }}
+                    >
+                      {policyNoticeLoading ? 'Saving...' : policyNoticeSaved ? '✓ Saved for This User!' : 'Save Notice for This User'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSavePolicyNotice(true)}
+                      disabled={policyNoticeLoading}
+                      className="py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 active:scale-[0.99] border border-amber-500/30"
+                      style={{
+                        background: policyNoticeBroadcasted
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : 'linear-gradient(135deg, #b45309, #78350f)',
+                      }}
+                      title="Apply this exact modal notice and toggle status to all users"
+                    >
+                      {policyNoticeBroadcasted ? '✓ Broadcasted to All Users!' : 'Broadcast Notice to All Users'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
